@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Automatizador de Video Web</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: #121212;
+      color: #e0e0e0;
+      margin: 0;
+      padding: 20px;
+      display: flex;
+      justify-content: center;
+    }
+    .container {
+      max-width: 650px;
+      width: 100%;
+      background: #1e1e1e;
+      padding: 25px;
+      border-radius: 12px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+    }
+    h2 { text-align: center; color: #4fc3f7; margin-bottom: 20px; }
+    .form-group { margin-bottom: 15px; }
+    label { display: block; margin-bottom: 6px; font-weight: 600; font-size: 14px; }
+    input[type="file"], select {
+      width: 100%;
+      padding: 10px;
+      background: #2a2a2a;
+      border: 1px solid #333;
+      color: #fff;
+      border-radius: 6px;
+      box-sizing: border-box;
+    }
+    button {
+      width: 100%;
+      padding: 12px;
+      background: #0288d1;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      font-size: 16px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+    button:hover { background: #01579b; }
+    button:disabled { background: #555; cursor: not-allowed; }
+    #log {
+      margin-top: 20px;
+      background: #000;
+      padding: 10px;
+      border-radius: 6px;
+      font-family: monospace;
+      font-size: 12px;
+      height: 120px;
+      overflow-y: auto;
+      color: #00ff66;
+    }
+    video { width: 100%; margin-top: 20px; border-radius: 6px; display: none; }
+  </style>
+
+  <!-- Cargar FFmpeg WebAssembly -->
+  <script src="https://unpkg.com/@ffmpeg/ffmpeg@0.11.6/dist/ffmpeg.min.js"></script>
+</head>
+<body>
+
+<div class="container">
+  <h2>Automatizador de Video Web</h2>
+
+  <div class="form-group">
+    <label>1. Formato / Relación de Aspecto:</label>
+    <select id="aspectRatio">
+      <option value="1080x1920">9:16 Vertical (Reels / TikTok / Shorts)</option>
+      <option value="1920x1080">16:9 Horizontal (YouTube / TV)</option>
+      <option value="1080x1080">1:1 Cuadrado (Instagram Feed)</option>
+    </select>
+  </div>
+
+  <div class="form-group">
+    <label>2. Archivo de Audio (Voz/Música):</label>
+    <input type="file" id="audioInput" accept="audio/*">
+  </div>
+
+  <div class="form-group">
+    <label>3. Imágenes de la línea de tiempo:</label>
+    <input type="file" id="imagesInput" multiple accept="image/*">
+  </div>
+
+  <button id="processBtn" onclick="renderVideo()">Generar Video Automatizado</button>
+
+  <div id="log">Logs de procesamiento...</div>
+  <video id="player" controls></video>
+</div>
+
+<script>
+  const { createFFmpeg, fetchFile } = FFmpeg;
+  const ffmpeg = createFFmpeg({ log: true });
+
+  function log(msg) {
+    const logBox = document.getElementById('log');
+    logBox.innerHTML += `<br>> ${msg}`;
+    logBox.scrollTop = logBox.scrollHeight;
+  }
+
+  async function renderVideo() {
+    const btn = document.getElementById('processBtn');
+    const audioFile = document.getElementById('audioInput').files[0];
+    const imageFiles = Array.from(document.getElementById('imagesInput').files);
+    const resolution = document.getElementById('aspectRatio').value;
+
+    if (!audioFile || imageFiles.length === 0) {
+      alert("Por favor sube al menos un archivo de audio y una imagen.");
+      return;
+    }
+
+    btn.disabled = true;
+    log("Cargando motor de video FFmpeg WASM...");
+
+    if (!ffmpeg.isLoaded()) {
+      await ffmpeg.load();
+    }
+
+    log("Escribiendo archivos en el navegador...");
+    await ffmpeg.FS('writeFile', 'audio.mp3', await fetchFile(audioFile));
+
+    let filterInputs = '';
+    let concatFilter = '';
+    const [width, height] = resolution.split('x');
+
+    for (let i = 0; i < imageFiles.length; i++) {
+      const imgName = `img_${i}.jpg`;
+      await ffmpeg.FS('writeFile', imgName, await fetchFile(imageFiles[i]));
+
+      filterInputs += `-loop 1 -t 4 -i ${imgName} `;
+      
+      // Zoom alternating: Par = Zoom In, Impar = Zoom Out
+      let zoomType = (i % 2 === 0)
+        ? "zoompan=z='min(zoom+0.0015,1.5)':d=100:x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)'"
+        : "zoompan=z='max(1.5-0.0015*on,1.0)':d=100:x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)'";
+
+      concatFilter += `[${i}:v]scale=${width}:${height}:force_original_aspect_ratio=increase,crop=${width}:${height},${zoomType},setsar=1[v${i}];`;
+    }
+
+    for (let i = 0; i < imageFiles.length; i++) {
+      concatFilter += `[v${i}]`;
+    }
+    concatFilter += `concat=n=${imageFiles.length}:v=1:a=0[vcat]`;
+
+    log("Generando video con cortes, ajuste de pantalla y zoom...");
+
+    // Ejecución del comando FFmpeg dentro del navegador
+    const command = [
+      ...filterInputs.trim().split(' '),
+      '-i', 'audio.mp3',
+      '-filter_complex', concatFilter,
+      '-map', '[vcat]',
+      '-map', `${imageFiles.length}:a`,
+      '-c:v', 'libx264',
+      '-pix_fmt', 'yuv420p',
+      '-shortest',
+      'output.mp4'
+    ];
+
+    await ffmpeg.run(...command);
+
+    log("¡Video completado con éxito!");
+    const data = ffmpeg.FS('readFile', 'output.mp4');
+
+    const videoPlayer = document.getElementById('player');
+    videoPlayer.src = URL.createObjectURL(new Blob([data.buffer], { type: 'video/mp4' }));
+    videoPlayer.style.display = 'block';
+    btn.disabled = false;
+  }
+</script>
+
+</body>
+</html>
