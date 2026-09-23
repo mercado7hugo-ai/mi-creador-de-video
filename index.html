@@ -1,180 +1,937 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Automatizador de Video Web</title>
-  <style>
-    body {
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      background-color: #121212;
-      color: #e0e0e0;
-      margin: 0;
-      padding: 20px;
-      display: flex;
-      justify-content: center;
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AutoClip — Creador de Video con Narración, Zoom y Transiciones</title>
+<style>
+  :root{
+    --bg:#f5f5f7; --panel:#ffffff; --text:#1b1b1f; --muted:#6b6b76;
+    --accent:#7c5cff; --accent-2:#ff6fa5; --border:#e2e2e8; --danger:#e5484d;
+    --shadow: 0 2px 10px rgba(0,0,0,.06);
+    --radius: 14px;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg:#111114; --panel:#1a1a1f; --text:#f0f0f3; --muted:#9a9aa5;
+      --border:#2c2c33; --shadow: 0 2px 14px rgba(0,0,0,.4);
     }
-    .container {
-      max-width: 650px;
-      width: 100%;
-      background: #1e1e1e;
-      padding: 25px;
-      border-radius: 12px;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.5);
-    }
-    h2 { text-align: center; color: #4fc3f7; margin-bottom: 20px; }
-    .form-group { margin-bottom: 15px; }
-    label { display: block; margin-bottom: 6px; font-weight: 600; font-size: 14px; }
-    input[type="file"], select {
-      width: 100%;
-      padding: 10px;
-      background: #2a2a2a;
-      border: 1px solid #333;
-      color: #fff;
-      border-radius: 6px;
-      box-sizing: border-box;
-    }
-    button {
-      width: 100%;
-      padding: 12px;
-      background: #0288d1;
-      color: white;
-      border: none;
-      border-radius: 6px;
-      font-size: 16px;
-      font-weight: bold;
-      cursor: pointer;
-      transition: background 0.3s;
-    }
-    button:hover { background: #01579b; }
-    button:disabled { background: #555; cursor: not-allowed; }
-    #log {
-      margin-top: 20px;
-      background: #000;
-      padding: 10px;
-      border-radius: 6px;
-      font-family: monospace;
-      font-size: 12px;
-      height: 120px;
-      overflow-y: auto;
-      color: #00ff66;
-    }
-    video { width: 100%; margin-top: 20px; border-radius: 6px; display: none; }
-  </style>
-
-  <!-- Cargar FFmpeg WebAssembly -->
-  <script src="https://unpkg.com/@ffmpeg/ffmpeg@0.11.6/dist/ffmpeg.min.js"></script>
+  }
+  :root[data-theme="dark"]{
+    --bg:#111114; --panel:#1a1a1f; --text:#f0f0f3; --muted:#9a9aa5;
+    --border:#2c2c33; --shadow: 0 2px 14px rgba(0,0,0,.4);
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; background:var(--bg); color:var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    min-height:100vh;
+  }
+  header{
+    padding:20px 24px 8px; text-align:center;
+  }
+  header h1{
+    margin:0; font-size:22px; font-weight:800;
+    background:linear-gradient(90deg,var(--accent),var(--accent-2));
+    -webkit-background-clip:text; background-clip:text; color:transparent;
+  }
+  header p{margin:4px 0 0; color:var(--muted); font-size:13px;}
+  .wrap{
+    display:flex; gap:18px; padding:16px; max-width:1300px; margin:0 auto;
+    flex-wrap:wrap;
+  }
+  .col{flex:1 1 380px; min-width:320px;}
+  .card{
+    background:var(--panel); border:1px solid var(--border); border-radius:var(--radius);
+    padding:16px; box-shadow:var(--shadow); margin-bottom:16px;
+  }
+  .card h2{margin:0 0 10px; font-size:15px; font-weight:700; display:flex; align-items:center; gap:8px;}
+  .dropzone{
+    border:2px dashed var(--border); border-radius:12px; padding:22px; text-align:center;
+    color:var(--muted); cursor:pointer; transition:.15s; font-size:13px;
+  }
+  .dropzone:hover{border-color:var(--accent); color:var(--accent);}
+  input[type=file]{display:none;}
+  button{
+    font-family:inherit; border:none; border-radius:10px; padding:10px 16px; font-size:13px;
+    font-weight:600; cursor:pointer; transition:.15s; background:var(--border); color:var(--text);
+  }
+  button:hover{filter:brightness(1.08);}
+  button:disabled{opacity:.45; cursor:not-allowed;}
+  button.primary{background:linear-gradient(90deg,var(--accent),var(--accent-2)); color:#fff;}
+  button.small{padding:6px 10px; font-size:12px; border-radius:8px;}
+  button.danger{background:transparent; color:var(--danger);}
+  .row{display:flex; gap:8px; align-items:center; flex-wrap:wrap;}
+  #clipList{list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:8px;}
+  .clip{
+    display:flex; gap:10px; align-items:center; background:var(--bg); border:1px solid var(--border);
+    border-radius:10px; padding:8px; cursor:grab;
+  }
+  .clip.dragging{opacity:.4;}
+  .clip img{width:64px; height:40px; object-fit:cover; border-radius:6px; flex-shrink:0;}
+  .clip .meta{flex:1; min-width:0; display:flex; flex-direction:column; gap:4px;}
+  .clip .meta .name{font-size:12px; color:var(--muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  .clip .controls-line{display:flex; gap:6px; align-items:center; flex-wrap:wrap;}
+  .clip input[type=number]{
+    width:56px; padding:4px 6px; border-radius:6px; border:1px solid var(--border);
+    background:var(--panel); color:var(--text); font-size:12px;
+  }
+  .clip select{
+    padding:4px 6px; border-radius:6px; border:1px solid var(--border);
+    background:var(--panel); color:var(--text); font-size:12px;
+  }
+  .empty-hint{color:var(--muted); font-size:12px; text-align:center; padding:10px;}
+  .previewBox{
+    background:#000; border-radius:12px; overflow:hidden; position:relative; aspect-ratio:16/9;
+  }
+  canvas{width:100%; height:100%; display:block;}
+  .playbar{margin-top:10px;}
+  .track{
+    height:6px; background:var(--border); border-radius:4px; position:relative; cursor:pointer; margin:8px 0;
+  }
+  .track .fill{position:absolute; left:0; top:0; height:100%; background:var(--accent); border-radius:4px; width:0%;}
+  .timecodes{display:flex; justify-content:space-between; font-size:11px; color:var(--muted);}
+  .status{font-size:12px; color:var(--muted); min-height:16px; margin-top:6px;}
+  .badge{
+    font-size:10px; padding:2px 7px; border-radius:20px; background:var(--border); color:var(--muted); font-weight:700;
+  }
+  .kbRow label{font-size:12px; color:var(--muted); display:flex; align-items:center; gap:6px;}
+  input[type=range]{accent-color:var(--accent);}
+  audio{width:100%; margin-top:6px;}
+</style>
 </head>
 <body>
 
-<div class="container">
-  <h2>Automatizador de Video Web</h2>
+<header>
+  <h1>🎬 AutoClip</h1>
+  <p>Sube imágenes + tu narración, ajusta la línea de tiempo, y exporta un video con zoom y transiciones automáticas.</p>
+</header>
 
-  <div class="form-group">
-    <label>1. Formato / Relación de Aspecto:</label>
-    <select id="aspectRatio">
-      <option value="1080x1920">9:16 Vertical (Reels / TikTok / Shorts)</option>
-      <option value="1920x1080">16:9 Horizontal (YouTube / TV)</option>
-      <option value="1080x1080">1:1 Cuadrado (Instagram Feed)</option>
-    </select>
+<div class="wrap">
+  <!-- LEFT: uploads + timeline -->
+  <div class="col">
+    <div class="card">
+      <h2>1. Audio de narración</h2>
+      <div class="dropzone" id="audioDrop">🎙️ Toca para subir tu audio (mp3, wav, m4a...)</div>
+      <input type="file" id="audioInput" accept="audio/*">
+      <audio id="audioEl" controls style="display:none;"></audio>
+      <div class="status" id="audioStatus">Sin audio cargado (opcional, puedes exportar solo con imágenes).</div>
+    </div>
+
+    <div class="card">
+      <h2>2. Imágenes</h2>
+      <div class="dropzone" id="imgDrop">🖼️ Toca para subir una o varias imágenes</div>
+      <input type="file" id="imgInput" accept="image/*" multiple>
+      <div class="row" style="margin-top:10px;">
+        <button id="autoDistBtn" class="small">⏱ Repartir tiempo según audio</button>
+        <button id="clearAllBtn" class="small danger">Vaciar todo</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>3. Sincronizar con tiempos de narración <span class="badge">opcional</span></h2>
+      <p style="font-size:12px;color:var(--muted);margin:0 0 8px;">Pega un tiempo por línea (formato mm:ss o segundos) marcando cuándo empieza cada imagen dentro de tu narración. El texto que escribas después del tiempo es solo referencia y no se mostrará en el video.</p>
+      <textarea id="timesInput" rows="5" placeholder="0:00 Bienvenidos a mi canal&#10;0:05 Hoy les voy a mostrar...&#10;0:12 Primero, empecemos con...&#10;0:20" style="width:100%;resize:vertical;padding:8px;border-radius:8px;border:1px solid var(--border);background:var(--bg);color:var(--text);font-size:12px;font-family:monospace;"></textarea>
+      <div class="row" style="margin-top:8px;">
+        <span style="font-size:12px;color:var(--muted);">Si no subiste audio, duración total (seg):</span>
+        <input type="number" id="manualTotal" min="1" step="0.5" style="width:70px;padding:4px 6px;border-radius:6px;border:1px solid var(--border);background:var(--panel);color:var(--text);font-size:12px;">
+      </div>
+      <div class="row" style="margin-top:8px;">
+        <button id="applyTimesBtn" class="primary small">✅ Aplicar tiempos a las imágenes</button>
+      </div>
+      <div class="status" id="syncStatus"></div>
+    </div>
+
+    <div class="card">
+      <h2>4. Línea de tiempo <span class="badge" id="clipCount">0 imágenes</span></h2>
+      <ul id="clipList"></ul>
+      <div class="empty-hint" id="emptyHint">Aún no has subido imágenes. Arrastra las tarjetas para reordenar, y ajusta duración/zoom/transición de cada una.</div>
+    </div>
   </div>
 
-  <div class="form-group">
-    <label>2. Archivo de Audio (Voz/Música):</label>
-    <input type="file" id="audioInput" accept="audio/*">
+  <!-- RIGHT: preview + export -->
+  <div class="col">
+    <div class="card">
+      <h2>Formato y calidad</h2>
+      <div class="row">
+        <select id="aspectSelect">
+          <option value="16:9">16:9 — Horizontal (YouTube)</option>
+          <option value="9:16">9:16 — Vertical (Reels/TikTok/Shorts)</option>
+          <option value="1:1">1:1 — Cuadrado (Instagram feed)</option>
+          <option value="4:3">4:3 — Clásico horizontal</option>
+          <option value="3:4">3:4 — Vertical clásico</option>
+        </select>
+        <select id="qualitySelect">
+          <option value="720p">720p (HD)</option>
+          <option value="1080p" selected>1080p (Full HD)</option>
+          <option value="4k">4K (Ultra HD)</option>
+        </select>
+      </div>
+      <div class="status">4K se ve mejor pero tarda más en grabar y pesa más el archivo final.</div>
+    </div>
+
+    <div class="card">
+      <h2>Vista previa</h2>
+      <div class="previewBox" id="previewBox"><canvas id="canvas" width="1920" height="1080"></canvas></div>
+      <div class="playbar">
+        <div class="track" id="track"><div class="fill" id="trackFill"></div></div>
+        <div class="timecodes"><span id="timeNow">0:00</span><span id="timeTotal">0:00</span></div>
+      </div>
+      <div class="row" style="margin-top:8px;">
+        <button id="playBtn" class="primary">▶ Reproducir</button>
+        <button id="stopBtn">⏹ Detener</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Zoom / movimiento de cámara</h2>
+      <div class="kbRow">
+        <label style="margin-top:0;">Intensidad
+          <input type="range" id="kbIntensity" min="0.05" max="0.4" step="0.05" value="0.18" style="flex:1;">
+        </label>
+      </div>
+      <div class="row" style="margin-top:10px;">
+        <select id="bulkZoomStyle">
+          <option value="random">🎲 Aleatorio</option>
+          <option value="in">🔍+ Acercar (zoom in)</option>
+          <option value="out">🔍- Alejar (zoom out)</option>
+          <option value="pan-lr">➡ Paneo hacia la derecha</option>
+          <option value="pan-rl">⬅ Paneo hacia la izquierda</option>
+          <option value="pan-du">⬇ Paneo hacia abajo</option>
+          <option value="pan-ud">⬆ Paneo hacia arriba</option>
+          <option value="static">⏹ Estático (sin zoom)</option>
+        </select>
+        <button id="bulkApplyZoomBtn" class="small">Aplicar a todas las imágenes</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Stickers <span class="badge">Suscríbete, Comparte...</span></h2>
+      <div class="row">
+        <select id="stickerType">
+          <option value="subscribe">🔔 Suscríbete</option>
+          <option value="share">📤 Comparte</option>
+          <option value="comment">💬 Comenta</option>
+          <option value="follow">➕ Sígueme</option>
+          <option value="like">❤️ Dale Like</option>
+          <option value="custom">✏️ Texto personalizado</option>
+        </select>
+      </div>
+      <div class="row" style="margin-top:8px;" id="customTextRow">
+        <input type="text" id="stickerCustomText" placeholder="Texto del sticker" style="flex:1;padding:6px 8px;border-radius:6px;border:1px solid var(--border);background:var(--bg);color:var(--text);font-size:12px;">
+      </div>
+      <div class="row" style="margin-top:8px;">
+        <select id="stickerPosition">
+          <option value="top-left">↖ Arriba izquierda</option>
+          <option value="top-right">↗ Arriba derecha</option>
+          <option value="bottom-left">↙ Abajo izquierda</option>
+          <option value="bottom-right" selected>↘ Abajo derecha</option>
+          <option value="center">⏺ Centro</option>
+        </select>
+      </div>
+      <div class="row" style="margin-top:8px;">
+        <span style="font-size:12px;color:var(--muted);">Desde (seg)</span>
+        <input type="number" id="stickerStart" min="0" step="0.5" value="0" style="width:64px;padding:4px 6px;border-radius:6px;border:1px solid var(--border);background:var(--panel);color:var(--text);font-size:12px;">
+        <span style="font-size:12px;color:var(--muted);">Hasta (seg)</span>
+        <input type="number" id="stickerEnd" min="0" step="0.5" style="width:64px;padding:4px 6px;border-radius:6px;border:1px solid var(--border);background:var(--panel);color:var(--text);font-size:12px;">
+      </div>
+      <div class="row" style="margin-top:8px;">
+        <button id="addStickerBtn" class="primary small">➕ Agregar sticker</button>
+      </div>
+      <ul id="stickerList" style="list-style:none;margin:10px 0 0;padding:0;display:flex;flex-direction:column;gap:6px;"></ul>
+    </div>
+
+    <div class="card">
+      <h2>Exportar</h2>
+      <div class="row">
+        <button id="exportBtn" class="primary">⬇ Generar y descargar video</button>
+      </div>
+      <div class="status" id="exportStatus"></div>
+    </div>
   </div>
-
-  <div class="form-group">
-    <label>3. Imágenes de la línea de tiempo:</label>
-    <input type="file" id="imagesInput" multiple accept="image/*">
-  </div>
-
-  <button id="processBtn" onclick="renderVideo()">Generar Video Automatizado</button>
-
-  <div id="log">Logs de procesamiento...</div>
-  <video id="player" controls></video>
 </div>
 
 <script>
-  const { createFFmpeg, fetchFile } = FFmpeg;
-  const ffmpeg = createFFmpeg({ log: true });
+(function(){
+  const canvas = document.getElementById('canvas');
+  const ctx = canvas.getContext('2d');
+  const audioEl = document.getElementById('audioEl');
+  const audioInput = document.getElementById('audioInput');
+  const audioDrop = document.getElementById('audioDrop');
+  const audioStatus = document.getElementById('audioStatus');
+  const imgInput = document.getElementById('imgInput');
+  const imgDrop = document.getElementById('imgDrop');
+  const clipList = document.getElementById('clipList');
+  const clipCount = document.getElementById('clipCount');
+  const emptyHint = document.getElementById('emptyHint');
+  const playBtn = document.getElementById('playBtn');
+  const stopBtn = document.getElementById('stopBtn');
+  const track = document.getElementById('track');
+  const trackFill = document.getElementById('trackFill');
+  const timeNow = document.getElementById('timeNow');
+  const timeTotal = document.getElementById('timeTotal');
+  const kbIntensity = document.getElementById('kbIntensity');
+  const bulkZoomStyle = document.getElementById('bulkZoomStyle');
+  const bulkApplyZoomBtn = document.getElementById('bulkApplyZoomBtn');
+  const timesInput = document.getElementById('timesInput');
+  const manualTotal = document.getElementById('manualTotal');
+  const applyTimesBtn = document.getElementById('applyTimesBtn');
+  const syncStatus = document.getElementById('syncStatus');
+  const exportBtn = document.getElementById('exportBtn');
+  const exportStatus = document.getElementById('exportStatus');
+  const autoDistBtn = document.getElementById('autoDistBtn');
+  const clearAllBtn = document.getElementById('clearAllBtn');
+  const aspectSelect = document.getElementById('aspectSelect');
+  const qualitySelect = document.getElementById('qualitySelect');
+  const previewBox = document.getElementById('previewBox');
+  const stickerType = document.getElementById('stickerType');
+  const stickerCustomText = document.getElementById('stickerCustomText');
+  const customTextRow = document.getElementById('customTextRow');
+  const stickerPosition = document.getElementById('stickerPosition');
+  const stickerStart = document.getElementById('stickerStart');
+  const stickerEnd = document.getElementById('stickerEnd');
+  const addStickerBtn = document.getElementById('addStickerBtn');
+  const stickerList = document.getElementById('stickerList');
 
-  function log(msg) {
-    const logBox = document.getElementById('log');
-    logBox.innerHTML += `<br>> ${msg}`;
-    logBox.scrollTop = logBox.scrollHeight;
+  const ZOOM_STYLES = [
+    ['random','🎲 Aleatorio'],
+    ['in','🔍+ Acercar'],
+    ['out','🔍- Alejar'],
+    ['pan-lr','➡ Paneo derecha'],
+    ['pan-rl','⬅ Paneo izquierda'],
+    ['pan-du','⬇ Paneo abajo'],
+    ['pan-ud','⬆ Paneo arriba'],
+    ['static','⏹ Estático']
+  ];
+
+  const FILTER_STYLES = [
+    ['none','🎨 Sin filtro'],
+    ['bw','⚫ Blanco y negro'],
+    ['sepia','🟤 Sepia'],
+    ['vintage','📼 Vintage'],
+    ['cool','❄️ Frío'],
+    ['warm','🔥 Cálido'],
+    ['vivid','✨ Vívido']
+  ];
+  const FILTER_CSS = {
+    none: 'none',
+    bw: 'grayscale(1)',
+    sepia: 'sepia(0.8) contrast(1.05)',
+    vintage: 'sepia(0.35) contrast(1.1) saturate(0.8) brightness(0.95)',
+    cool: 'hue-rotate(15deg) saturate(1.15) brightness(1.02)',
+    warm: 'sepia(0.25) saturate(1.35) hue-rotate(-8deg)',
+    vivid: 'saturate(1.6) contrast(1.15)'
+  };
+
+  const RES = {
+    '16:9': {'720p':[1280,720], '1080p':[1920,1080], '4k':[3840,2160]},
+    '9:16': {'720p':[720,1280], '1080p':[1080,1920], '4k':[2160,3840]},
+    '1:1':  {'720p':[720,720],  '1080p':[1080,1080], '4k':[2160,2160]},
+    '4:3':  {'720p':[960,720],  '1080p':[1440,1080], '4k':[2880,2160]},
+    '3:4':  {'720p':[720,960],  '1080p':[1080,1440], '4k':[2160,2880]}
+  };
+
+  const STICKER_PRESETS = {
+    subscribe: '🔔 Suscríbete',
+    share: '📤 Comparte',
+    comment: '💬 Comenta',
+    follow: '➕ Sígueme',
+    like: '❤️ Dale Like'
+  };
+
+  let stickers = [];
+  let clips = [];
+  let audioLoaded = false;
+  let audioDuration = 0;
+  let playing = false;
+  let rafId = null;
+  let manualStart = 0;
+  let dragSrcIndex = null;
+  const TRANSITION_DUR = 0.6;
+
+  function uid(){ return Math.random().toString(36).slice(2,9); }
+  function randRange(a,b){ return a + Math.random()*(b-a); }
+
+  function buildKB(style, intensity){
+    intensity = intensity || 0.18;
+    switch(style){
+      case 'in':
+        return {s0:1, s1:1+intensity*1.6, x0:0.5, y0:0.5, x1:0.5, y1:0.5};
+      case 'out':
+        return {s0:1+intensity*1.6, s1:1, x0:0.5, y0:0.5, x1:0.5, y1:0.5};
+      case 'pan-lr': { const s=1+intensity*1.3; return {s0:s, s1:s, x0:0.15, y0:0.5, x1:0.85, y1:0.5}; }
+      case 'pan-rl': { const s=1+intensity*1.3; return {s0:s, s1:s, x0:0.85, y0:0.5, x1:0.15, y1:0.5}; }
+      case 'pan-du': { const s=1+intensity*1.3; return {s0:s, s1:s, x0:0.5, y0:0.15, x1:0.5, y1:0.85}; }
+      case 'pan-ud': { const s=1+intensity*1.3; return {s0:s, s1:s, x0:0.5, y0:0.85, x1:0.5, y1:0.15}; }
+      case 'static':
+        return {s0:1, s1:1, x0:0.5, y0:0.5, x1:0.5, y1:0.5};
+      case 'random':
+      default: {
+        const zoomIn = Math.random() > 0.5;
+        const s0 = zoomIn ? 1.0 : 1.0 + intensity*1.6;
+        const s1 = zoomIn ? 1.0 + intensity*1.6 : 1.0;
+        const cx0 = randRange(0.3,0.7), cy0 = randRange(0.3,0.7);
+        const cx1 = randRange(0.3,0.7), cy1 = randRange(0.3,0.7);
+        return {s0, s1, x0:cx0, y0:cy0, x1:cx1, y1:cy1};
+      }
+    }
   }
 
-  async function renderVideo() {
-    const btn = document.getElementById('processBtn');
-    const audioFile = document.getElementById('audioInput').files[0];
-    const imageFiles = Array.from(document.getElementById('imagesInput').files);
-    const resolution = document.getElementById('aspectRatio').value;
+  function totalClipsDuration(){ return clips.reduce((a,c)=>a+c.duration,0); }
+  function totalDuration(){ return Math.max(totalClipsDuration(), audioLoaded ? audioDuration : 0); }
 
-    if (!audioFile || imageFiles.length === 0) {
-      alert("Por favor sube al menos un archivo de audio y una imagen.");
+  function fmt(t){
+    if(!isFinite(t)) t = 0;
+    const m = Math.floor(t/60), s = Math.floor(t%60);
+    return m + ':' + String(s).padStart(2,'0');
+  }
+
+  function applyCanvasSize(){
+    const [w,h] = RES[aspectSelect.value][qualitySelect.value];
+    canvas.width = w; canvas.height = h;
+    previewBox.style.aspectRatio = w + '/' + h;
+    if(!playing) drawFrame(0);
+  }
+  aspectSelect.addEventListener('change', applyCanvasSize);
+  qualitySelect.addEventListener('change', applyCanvasSize);
+
+  // ---------- Stickers ----------
+  stickerType.addEventListener('change', ()=>{
+    customTextRow.style.display = stickerType.value==='custom' ? 'flex' : 'none';
+  });
+  customTextRow.style.display = 'none';
+
+  function renderStickerList(){
+    stickerList.innerHTML = '';
+    stickers.forEach((s, idx)=>{
+      const li = document.createElement('li');
+      li.style.cssText = 'display:flex;align-items:center;gap:8px;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:6px 8px;font-size:12px;';
+      const label = document.createElement('span');
+      label.style.flex = '1';
+      label.textContent = s.text + ' · ' + s.position + ' · ' + fmt(s.start) + '–' + (s.end!==null ? fmt(s.end) : 'fin');
+      li.appendChild(label);
+      const rm = document.createElement('button');
+      rm.className = 'small danger'; rm.textContent = '✕';
+      rm.addEventListener('click', ()=>{ stickers.splice(idx,1); renderStickerList(); if(!playing) drawFrame(0); });
+      li.appendChild(rm);
+      stickerList.appendChild(li);
+    });
+  }
+
+  addStickerBtn.addEventListener('click', ()=>{
+    const type = stickerType.value;
+    const text = type==='custom' ? (stickerCustomText.value.trim() || 'Texto') : STICKER_PRESETS[type];
+    const start = Math.max(0, parseFloat(stickerStart.value)||0);
+    const endRaw = stickerEnd.value;
+    const end = endRaw==='' ? null : Math.max(start+0.1, parseFloat(endRaw));
+    stickers.push({id: uid(), text, position: stickerPosition.value, start, end});
+    renderStickerList();
+    if(!playing) drawFrame(start);
+  });
+
+  function drawStickers(t){
+    stickers.forEach(s=>{
+      const active = t >= s.start && (s.end===null || t <= s.end);
+      if(!active) return;
+      const pad = canvas.width*0.02;
+      ctx.font = 'bold ' + Math.round(canvas.width*0.03) + 'px -apple-system, sans-serif';
+      const textW = ctx.measureText(s.text).width;
+      const boxW = textW + pad*2;
+      const boxH = canvas.width*0.06;
+      let bx, by;
+      if(s.position==='top-left'){ bx=pad; by=pad; }
+      else if(s.position==='top-right'){ bx=canvas.width-boxW-pad; by=pad; }
+      else if(s.position==='bottom-left'){ bx=pad; by=canvas.height-boxH-pad; }
+      else if(s.position==='bottom-right'){ bx=canvas.width-boxW-pad; by=canvas.height-boxH-pad; }
+      else { bx=(canvas.width-boxW)/2; by=(canvas.height-boxH)/2; }
+      const pulse = 1 + Math.sin(t*4)*0.03;
+      ctx.save();
+      ctx.translate(bx+boxW/2, by+boxH/2);
+      ctx.scale(pulse, pulse);
+      ctx.translate(-(bx+boxW/2), -(by+boxH/2));
+      ctx.fillStyle = 'rgba(124,92,255,0.92)';
+      roundRect(ctx, bx, by, boxW, boxH, boxH/2);
+      ctx.fill();
+      ctx.fillStyle = '#fff';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(s.text, bx+pad, by+boxH/2+1);
+      ctx.restore();
+    });
+  }
+
+  function roundRect(ctx,x,y,w,h,r){
+    ctx.beginPath();
+    ctx.moveTo(x+r,y);
+    ctx.arcTo(x+w,y,x+w,y+h,r);
+    ctx.arcTo(x+w,y+h,x,y+h,r);
+    ctx.arcTo(x,y+h,x,y,r);
+    ctx.arcTo(x,y,x+w,y,r);
+    ctx.closePath();
+  }
+
+  // ---------- Audio upload ----------
+  audioDrop.addEventListener('click', ()=> audioInput.click());
+  audioInput.addEventListener('change', e=>{
+    const f = e.target.files[0];
+    if(!f) return;
+    const url = URL.createObjectURL(f);
+    audioEl.src = url;
+    audioEl.style.display = 'block';
+    audioEl.onloadedmetadata = ()=>{
+      audioLoaded = true;
+      audioDuration = audioEl.duration;
+      audioStatus.textContent = '✅ ' + f.name + ' — ' + fmt(audioDuration) + ' de duración';
+      updateTotals();
+    };
+  });
+
+  // ---------- Image upload ----------
+  imgDrop.addEventListener('click', ()=> imgInput.click());
+  imgInput.addEventListener('change', e=>{
+    const files = Array.from(e.target.files);
+    files.forEach(f=>{
+      const url = URL.createObjectURL(f);
+      const img = new Image();
+      img.onload = ()=>{
+        clips.push({
+          id: uid(), name: f.name, img, url,
+          duration: 3,
+          kbStyle: 'random',
+          kb: buildKB('random', parseFloat(kbIntensity.value)),
+          transitionOut: 'fade',
+          filter: 'none',
+          subtitle: ''
+        });
+        renderClipList();
+      };
+      img.src = url;
+    });
+    imgInput.value = '';
+  });
+
+  function renderClipList(){
+    clipList.innerHTML = '';
+    emptyHint.style.display = clips.length ? 'none' : 'block';
+    clipCount.textContent = clips.length + (clips.length===1?' imagen':' imágenes');
+    clips.forEach((c, idx)=>{
+      const li = document.createElement('li');
+      li.className = 'clip';
+      li.draggable = true;
+      li.dataset.idx = idx;
+
+      const thumb = document.createElement('img');
+      thumb.src = c.url;
+      li.appendChild(thumb);
+
+      const meta = document.createElement('div');
+      meta.className = 'meta';
+
+      const name = document.createElement('div');
+      name.className = 'name';
+      name.textContent = (idx+1) + '. ' + c.name;
+      meta.appendChild(name);
+
+      const line = document.createElement('div');
+      line.className = 'controls-line';
+
+      const durLabel = document.createElement('span');
+      durLabel.style.fontSize='11px'; durLabel.style.color='var(--muted)';
+      durLabel.textContent = 'seg:';
+      line.appendChild(durLabel);
+
+      const durInput = document.createElement('input');
+      durInput.type = 'number'; durInput.min = '0.3'; durInput.step = '0.1';
+      durInput.value = c.duration;
+      durInput.addEventListener('input', ()=>{
+        c.duration = Math.max(0.3, parseFloat(durInput.value)||3);
+        updateTotals();
+      });
+      line.appendChild(durInput);
+
+      const transSel = document.createElement('select');
+      [['fade','➜ Fundido'],['slide','➜ Deslizar'],['zoom','➜ Zoom'],['wipe','➜ Barrido'],['cut','➜ Corte']].forEach(([t,label])=>{
+        const opt = document.createElement('option');
+        opt.value = t; opt.textContent = label;
+        if(c.transitionOut===t) opt.selected = true;
+        transSel.appendChild(opt);
+      });
+      transSel.addEventListener('change', ()=>{ c.transitionOut = transSel.value; });
+      line.appendChild(transSel);
+
+      const zoomSel = document.createElement('select');
+      ZOOM_STYLES.forEach(([val,label])=>{
+        const opt = document.createElement('option');
+        opt.value = val; opt.textContent = label;
+        if((c.kbStyle||'random')===val) opt.selected = true;
+        zoomSel.appendChild(opt);
+      });
+      zoomSel.addEventListener('change', ()=>{
+        c.kbStyle = zoomSel.value;
+        c.kb = buildKB(c.kbStyle, parseFloat(kbIntensity.value));
+      });
+      line.appendChild(zoomSel);
+
+      const filterSel = document.createElement('select');
+      FILTER_STYLES.forEach(([val,label])=>{
+        const opt = document.createElement('option');
+        opt.value = val; opt.textContent = label;
+        if((c.filter||'none')===val) opt.selected = true;
+        filterSel.appendChild(opt);
+      });
+      filterSel.addEventListener('change', ()=>{ c.filter = filterSel.value; if(!playing) drawFrame(0); });
+      line.appendChild(filterSel);
+
+      meta.appendChild(line);
+
+      const upBtn = document.createElement('button');
+      upBtn.className='small'; upBtn.textContent='↑';
+      upBtn.disabled = idx===0;
+      upBtn.addEventListener('click', ()=>{ moveClip(idx, idx-1); });
+      line.appendChild(upBtn);
+
+      const downBtn = document.createElement('button');
+      downBtn.className='small'; downBtn.textContent='↓';
+      downBtn.disabled = idx===clips.length-1;
+      downBtn.addEventListener('click', ()=>{ moveClip(idx, idx+1); });
+      line.appendChild(downBtn);
+
+      const delBtn = document.createElement('button');
+      delBtn.className='small danger'; delBtn.textContent='✕';
+      delBtn.addEventListener('click', ()=>{ clips.splice(idx,1); renderClipList(); updateTotals(); });
+      line.appendChild(delBtn);
+
+      li.appendChild(meta);
+      clipList.appendChild(li);
+
+      li.addEventListener('dragstart', ()=>{ dragSrcIndex = idx; li.classList.add('dragging'); });
+      li.addEventListener('dragend', ()=>{ li.classList.remove('dragging'); });
+      li.addEventListener('dragover', e=> e.preventDefault());
+      li.addEventListener('drop', e=>{
+        e.preventDefault();
+        if(dragSrcIndex===null || dragSrcIndex===idx) return;
+        moveClip(dragSrcIndex, idx);
+      });
+    });
+    updateTotals();
+    if(!playing) drawFrame(0);
+  }
+
+  function moveClip(from,to){
+    const item = clips.splice(from,1)[0];
+    clips.splice(to,0,item);
+    renderClipList();
+  }
+
+  autoDistBtn.addEventListener('click', ()=>{
+    if(!clips.length) return;
+    const dur = audioLoaded ? audioDuration : totalClipsDuration() || clips.length*3;
+    const each = Math.max(0.3, dur / clips.length);
+    clips.forEach(c=> c.duration = Math.round(each*10)/10);
+    renderClipList();
+  });
+
+  kbIntensity.addEventListener('input', ()=>{
+    clips.forEach(c=>{ c.kb = buildKB(c.kbStyle||'random', parseFloat(kbIntensity.value)); });
+    if(!playing) drawFrame(0);
+  });
+
+  bulkApplyZoomBtn.addEventListener('click', ()=>{
+    const style = bulkZoomStyle.value;
+    clips.forEach(c=>{ c.kbStyle = style; c.kb = buildKB(style, parseFloat(kbIntensity.value)); });
+    renderClipList();
+  });
+
+  function parseTimes(text){
+    return text.split('\n').map(l=>l.trim()).filter(Boolean).map(line=>{
+      const m = line.match(/^(\d{1,3}:\d{2}(?:\.\d+)?|\d+(?:\.\d+)?)\s*[-–:]?\s*(.*)$/);
+      if(!m) return null;
+      const token = m[1];
+      const label = (m[2]||'').trim();
+      let time;
+      if(token.includes(':')){
+        const parts = token.split(':');
+        time = parseInt(parts[0],10)*60 + parseFloat(parts[1]);
+      } else {
+        time = parseFloat(token);
+      }
+      if(isNaN(time)) return null;
+      return {time, text: label};
+    }).filter(v=> v!==null);
+  }
+
+  applyTimesBtn.addEventListener('click', ()=>{
+    if(!clips.length){ syncStatus.textContent = 'Agrega imágenes primero.'; return; }
+    const parsed = parseTimes(timesInput.value).sort((a,b)=>a.time-b.time);
+    if(parsed.length < 1){ syncStatus.textContent = 'No se detectaron tiempos válidos. Usa formato mm:ss o segundos, uno por línea.'; return; }
+    const times = parsed.map(p=>p.time);
+
+    const n = Math.min(times.length, clips.length);
+    for(let i=0;i<n-1;i++){
+      clips[i].duration = Math.max(0.3, times[i+1]-times[i]);
+    }
+    const lastIdx = n-1;
+    let endTime;
+    if(audioLoaded){
+      endTime = audioDuration;
+    } else if(manualTotal.value){
+      endTime = parseFloat(manualTotal.value);
+    } else {
+      endTime = times[lastIdx] + (clips[lastIdx].duration || 3);
+    }
+    clips[lastIdx].duration = Math.max(0.3, endTime - times[lastIdx]);
+
+    if(times.length !== clips.length){
+      syncStatus.textContent = '⚠️ Se detectaron ' + times.length + ' tiempo(s) y hay ' + clips.length + ' imagen(es) — se ajustaron ' + n + '.';
+    } else {
+      syncStatus.textContent = '✅ Duraciones ajustadas según tu narración.';
+    }
+    renderClipList();
+  });
+
+  clearAllBtn.addEventListener('click', ()=>{
+    clips = [];
+    audioEl.src=''; audioEl.style.display='none'; audioLoaded=false; audioDuration=0;
+    audioStatus.textContent = 'Sin audio cargado (opcional, puedes exportar solo con imágenes).';
+    renderClipList(); updateTotals();
+  });
+
+  function updateTotals(){ timeTotal.textContent = fmt(totalDuration()); }
+
+  // ---------- Drawing ----------
+  function computeKBFrame(clip, localT){
+    const kb = clip.kb;
+    const scale = kb.s0 + (kb.s1-kb.s0)*localT;
+    const cx = kb.x0 + (kb.x1-kb.x0)*localT;
+    const cy = kb.y0 + (kb.y1-kb.y0)*localT;
+    return {scale, cx, cy};
+  }
+
+  function drawClipFrame(clip, localT, dx, dy, alpha, drawW, drawH, extraScale){
+    const img = clip.img;
+    const {scale, cx, cy} = computeKBFrame(clip, localT);
+    const cw = drawW===undefined?canvas.width:drawW;
+    const ch = drawH===undefined?canvas.height:drawH;
+    const canvasAspect = cw/ch;
+    const imgAspect = img.width/img.height;
+    let baseW, baseH;
+    if(imgAspect > canvasAspect){ baseH = img.height; baseW = img.height*canvasAspect; }
+    else { baseW = img.width; baseH = img.width/canvasAspect; }
+    const cropW = baseW/scale, cropH = baseH/scale;
+    let sx = cx*img.width - cropW/2;
+    let sy = cy*img.height - cropH/2;
+    sx = Math.max(0, Math.min(img.width-cropW, sx));
+    sy = Math.max(0, Math.min(img.height-cropH, sy));
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    ctx.filter = FILTER_CSS[clip.filter] || 'none';
+    if(extraScale && extraScale!==1){
+      const ecx = dx+cw/2, ecy = dy+ch/2;
+      ctx.translate(ecx, ecy);
+      ctx.scale(extraScale, extraScale);
+      ctx.translate(-ecx, -ecy);
+    }
+    ctx.drawImage(img, sx, sy, cropW, cropH, dx, dy, cw, ch);
+    ctx.filter = 'none';
+    ctx.restore();
+  }
+
+  function findSegment(t){
+    let acc = 0;
+    for(let i=0;i<clips.length;i++){
+      const d = clips[i].duration;
+      if(t < acc+d || i===clips.length-1) return {index:i, segStart:acc, localT: Math.min(1,Math.max(0,(t-acc)/d))};
+      acc += d;
+    }
+    return {index:0, segStart:0, localT:0};
+  }
+
+  function drawFrame(t){
+    ctx.fillStyle = '#000';
+    ctx.fillRect(0,0,canvas.width,canvas.height);
+    if(!clips.length) return;
+    const {index, segStart, localT} = findSegment(t);
+    const clip = clips[index];
+    const prev = index>0 ? clips[index-1] : null;
+    const inTransWindow = prev && prev.transitionOut!=='cut' && (t-segStart) < TRANSITION_DUR;
+
+    if(inTransWindow){
+      const alpha = Math.min(1, (t-segStart)/TRANSITION_DUR);
+      if(prev.transitionOut === 'fade'){
+        drawClipFrame(prev, 1, 0, 0, 1);
+        drawClipFrame(clip, localT, 0, 0, alpha);
+      } else if(prev.transitionOut === 'slide'){
+        drawClipFrame(prev, 1, 0, 0, 1);
+        const offset = canvas.width * (1-alpha);
+        drawClipFrame(clip, localT, offset, 0, 1);
+      } else if(prev.transitionOut === 'zoom'){
+        drawClipFrame(prev, 1, 0, 0, 1);
+        const extraScale = 1.25 - 0.25*alpha;
+        drawClipFrame(clip, localT, 0, 0, alpha, undefined, undefined, extraScale);
+      } else if(prev.transitionOut === 'wipe'){
+        drawClipFrame(prev, 1, 0, 0, 1);
+        ctx.save();
+        ctx.beginPath();
+        ctx.rect(0, 0, canvas.width*alpha, canvas.height);
+        ctx.clip();
+        drawClipFrame(clip, localT, 0, 0, 1);
+        ctx.restore();
+      } else {
+        drawClipFrame(clip, localT, 0, 0, 1);
+      }
+    } else {
+      drawClipFrame(clip, localT, 0, 0, 1);
+    }
+
+    drawStickers(t);
+  }
+
+  // ---------- Playback ----------
+  function tick(){
+    const total = totalDuration();
+    let t;
+    if(audioLoaded && !audioEl.paused){
+      t = audioEl.currentTime;
+    } else if(audioLoaded){
+      t = audioEl.currentTime;
+    } else {
+      t = (performance.now()/1000) - manualStart;
+    }
+    if(t >= total){
+      drawFrame(Math.max(0,total-0.01));
+      stopPlayback();
       return;
     }
-
-    btn.disabled = true;
-    log("Cargando motor de video FFmpeg WASM...");
-
-    if (!ffmpeg.isLoaded()) {
-      await ffmpeg.load();
-    }
-
-    log("Escribiendo archivos en el navegador...");
-    await ffmpeg.FS('writeFile', 'audio.mp3', await fetchFile(audioFile));
-
-    let filterInputs = '';
-    let concatFilter = '';
-    const [width, height] = resolution.split('x');
-
-    for (let i = 0; i < imageFiles.length; i++) {
-      const imgName = `img_${i}.jpg`;
-      await ffmpeg.FS('writeFile', imgName, await fetchFile(imageFiles[i]));
-
-      filterInputs += `-loop 1 -t 4 -i ${imgName} `;
-      
-      // Zoom alternating: Par = Zoom In, Impar = Zoom Out
-      let zoomType = (i % 2 === 0)
-        ? "zoompan=z='min(zoom+0.0015,1.5)':d=100:x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)'"
-        : "zoompan=z='max(1.5-0.0015*on,1.0)':d=100:x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)'";
-
-      concatFilter += `[${i}:v]scale=${width}:${height}:force_original_aspect_ratio=increase,crop=${width}:${height},${zoomType},setsar=1[v${i}];`;
-    }
-
-    for (let i = 0; i < imageFiles.length; i++) {
-      concatFilter += `[v${i}]`;
-    }
-    concatFilter += `concat=n=${imageFiles.length}:v=1:a=0[vcat]`;
-
-    log("Generando video con cortes, ajuste de pantalla y zoom...");
-
-    // Ejecución del comando FFmpeg dentro del navegador
-    const command = [
-      ...filterInputs.trim().split(' '),
-      '-i', 'audio.mp3',
-      '-filter_complex', concatFilter,
-      '-map', '[vcat]',
-      '-map', `${imageFiles.length}:a`,
-      '-c:v', 'libx264',
-      '-pix_fmt', 'yuv420p',
-      '-shortest',
-      'output.mp4'
-    ];
-
-    await ffmpeg.run(...command);
-
-    log("¡Video completado con éxito!");
-    const data = ffmpeg.FS('readFile', 'output.mp4');
-
-    const videoPlayer = document.getElementById('player');
-    videoPlayer.src = URL.createObjectURL(new Blob([data.buffer], { type: 'video/mp4' }));
-    videoPlayer.style.display = 'block';
-    btn.disabled = false;
+    drawFrame(t);
+    trackFill.style.width = (total? (t/total*100):0) + '%';
+    timeNow.textContent = fmt(t);
+    rafId = requestAnimationFrame(tick);
   }
-</script>
 
+  function startPlayback(){
+    if(!clips.length) return;
+    playing = true;
+    playBtn.textContent = '⏸ Pausar';
+    if(audioLoaded){
+      audioEl.play().catch(()=>{});
+    } else {
+      manualStart = performance.now()/1000;
+    }
+    rafId = requestAnimationFrame(tick);
+  }
+
+  function pausePlayback(){
+    playing = false;
+    playBtn.textContent = '▶ Reproducir';
+    if(audioLoaded) audioEl.pause();
+    if(rafId) cancelAnimationFrame(rafId);
+  }
+
+  function stopPlayback(){
+    pausePlayback();
+    if(audioLoaded) audioEl.currentTime = 0;
+    trackFill.style.width='0%';
+    timeNow.textContent='0:00';
+    drawFrame(0);
+  }
+
+  playBtn.addEventListener('click', ()=>{
+    if(playing) pausePlayback(); else startPlayback();
+  });
+  stopBtn.addEventListener('click', stopPlayback);
+
+  track.addEventListener('click', e=>{
+    const rect = track.getBoundingClientRect();
+    const frac = (e.clientX-rect.left)/rect.width;
+    const total = totalDuration();
+    const t = frac*total;
+    if(audioLoaded) audioEl.currentTime = t;
+    else manualStart = performance.now()/1000 - t;
+    drawFrame(t);
+    trackFill.style.width = (frac*100)+'%';
+    timeNow.textContent = fmt(t);
+  });
+
+  // ---------- Export Corregido ----------
+  function pickMime(){
+    const options = [
+      'video/webm;codecs=vp9,opus',
+      'video/webm;codecs=vp8,opus',
+      'video/webm'
+    ];
+    for(const o of options){ if(window.MediaRecorder && MediaRecorder.isTypeSupported(o)) return o; }
+    return 'video/webm';
+  }
+
+  exportBtn.addEventListener('click', async ()=>{
+    if(!clips.length){ exportStatus.textContent = 'Agrega al menos una imagen primero.'; return; }
+    if(playing) pausePlayback();
+    exportBtn.disabled = true;
+    exportStatus.textContent = 'Preparando exportación...';
+
+    const stream = canvas.captureStream(30);
+    let audioCtx, sourceNode, destNode;
+    if(audioLoaded){
+      try{
+        audioCtx = new (window.AudioContext||window.webkitAudioContext)();
+        sourceNode = audioCtx.createMediaElementSource(audioEl);
+        destNode = audioCtx.createMediaStreamDestination();
+        sourceNode.connect(destNode);
+        destNode.stream.getAudioTracks().forEach(tr=> stream.addTrack(tr));
+      }catch(e){ /* Si falla, exporta solo video */ }
+    }
+
+    const bitrateMap = {'720p':4000000, '1080p':8000000, '4k':28000000};
+    const recorder = new MediaRecorder(stream, {mimeType: pickMime(), videoBitsPerSecond: bitrateMap[qualitySelect.value] || 8000000});
+    const chunks = [];
+    recorder.ondataavailable = e=>{ if(e.data.size>0) chunks.push(e.data); };
+
+    recorder.onstop = ()=>{
+      const blob = new Blob(chunks, {type:'video/webm'});
+      exportStatus.textContent = 'Guardando archivo...';
+      
+      // Descarga limpia nativa desde cualquier navegador
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; 
+      a.download = 'autoclip-video.webm'; 
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      
+      exportStatus.textContent = '✅ ¡Video generado y descargado con éxito!';
+      exportBtn.disabled = false;
+    };
+
+    const total = totalDuration();
+    recorder.start(200);
+    exportStatus.textContent = 'Grabando video (' + fmt(total) + ')... no cierres esta pestaña.';
+
+    let startTime;
+    if(audioLoaded){
+      audioEl.currentTime = 0;
+      await audioEl.play().catch(()=>{});
+    }
+    startTime = performance.now()/1000;
+
+    function exportTick(){
+      const t = audioLoaded ? audioEl.currentTime : (performance.now()/1000 - startTime);
+      if(t >= total){
+        drawFrame(Math.max(0,total-0.01));
+        if(audioLoaded) audioEl.pause();
+        setTimeout(()=> recorder.stop(), 150);
+        return;
+      }
+      drawFrame(t);
+      exportStatus.textContent = 'Grabando... ' + fmt(t) + ' / ' + fmt(total);
+      requestAnimationFrame(exportTick);
+    }
+    requestAnimationFrame(exportTick);
+  });
+
+  applyCanvasSize();
+  drawFrame(0);
+})();
+</script>
 </body>
 </html>
