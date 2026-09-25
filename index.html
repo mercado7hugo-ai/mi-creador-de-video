@@ -161,6 +161,7 @@
       <div class="row">
         <select id="globalFilterSelect" style="flex:1;">
           <option value="none">🎨 Sin filtro</option>
+          <option value="vintage">📜 Vintage / Retro</option>
           <option value="vivid">✨ Vívido</option>
           <option value="warm">🔥 Cálido</option>
           <option value="cool">❄️ Frío</option>
@@ -216,8 +217,13 @@
   const applyGlobalFilterBtn = document.getElementById('applyGlobalFilterBtn');
 
   const FILTER_CSS = {
-    none: 'none', bw: 'grayscale(1)', sepia: 'sepia(0.8)',
-    cool: 'hue-rotate(15deg) saturate(1.15)', warm: 'sepia(0.25) saturate(1.35)', vivid: 'saturate(1.6) contrast(1.15)'
+    none: 'none', 
+    vintage: 'sepia(0.35) contrast(1.1) brightness(0.9) saturate(1.2)',
+    bw: 'grayscale(1)', 
+    sepia: 'sepia(0.8)',
+    cool: 'hue-rotate(15deg) saturate(1.15)', 
+    warm: 'sepia(0.25) saturate(1.35)', 
+    vivid: 'saturate(1.6) contrast(1.15)'
   };
 
   const RES = {
@@ -256,7 +262,6 @@
     return m + ':' + String(s).padStart(2,'0');
   }
 
-  // Convertir min:seg a segundos
   function parseTimeToSeconds(str){
     if(!str) return null;
     const clean = str.trim().replace(/[^0-9:]/g, '');
@@ -316,7 +321,6 @@
     imgInput.value = '';
   });
 
-  // Renderizado
   function renderClipList(){
     clipList.innerHTML = '';
     emptyHint.style.display = clips.length ? 'none' : 'block';
@@ -381,7 +385,7 @@
     if(!playing) drawFrame(0);
   }
 
-  // APLICAR TIEMPOS DE LA CAJA
+  // APLICAR TIEMPOS
   applyTimesBtn.addEventListener('click', ()=>{
     if(!clips.length){
       syncStatus.textContent = '⚠️ Primero sube algunas imágenes.';
