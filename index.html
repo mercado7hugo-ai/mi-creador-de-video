@@ -40,7 +40,7 @@
   .clip .meta{ flex:1; min-width:0; display:flex; flex-direction:column; gap:6px; }
   .clip .meta .name{ font-size:12px; color:var(--muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   .clip .controls-line{ display:flex; gap:6px; align-items:center; flex-wrap:wrap; }
-  .clip input[type=number]{ width:56px; padding:4px 6px; border-radius:6px; border:1px solid var(--border); background:var(--panel); color:var(--text); font-size:12px; }
+  .clip input[type=number]{ width:65px; padding:4px 6px; border-radius:6px; border:1px solid var(--border); background:var(--panel); color:var(--text); font-size:12px; }
   .clip select, select{ padding:6px 8px; border-radius:6px; border:1px solid var(--border); background:var(--panel); color:var(--text); font-size:12px; }
   .empty-hint{ color:var(--muted); font-size:12px; text-align:center; padding:10px; }
   .previewBox{ background:#000; border-radius:12px; overflow:hidden; position:relative; aspect-ratio:16/9; }
@@ -78,15 +78,15 @@
       <div class="dropzone" id="imgDrop">🖼️ / 🎥 Sube imágenes o videos</div>
       <input type="file" id="imgInput" accept="image/*,video/*" multiple>
       <div class="row" style="margin-top:10px;">
-        <button id="autoDistBtn" class="small">⏱ Repartir tiempo según audio</button>
+        <button id="autoDistBtn" class="small primary">⏱ Repartir tiempo por igual según audio</button>
         <button id="clearAllBtn" class="small danger">Vaciar lista</button>
       </div>
     </div>
 
     <div class="card">
-      <h2>3. Sincronización de tiempos</h2>
-      <p style="font-size:12px;color:var(--muted);margin:0 0 8px;">Pega los tiempos por línea (ej: 0:00, 0:15, 0:45) para asignar la duración a cada escena.</p>
-      <textarea id="timesInput" rows="4" placeholder="0:00 Escena 1&#10;0:15 Escena 2&#10;0:40 Escena 3" style="width:100%;resize:vertical;padding:8px;border-radius:8px;border:1px solid var(--border);background:var(--bg);color:var(--text);font-size:12px;font-family:monospace;"></textarea>
+      <h2>3. Sincronización por marcas de tiempo</h2>
+      <p style="font-size:12px;color:var(--muted);margin:0 0 8px;">Pega los minutos exactos donde cambia cada imagen (un tiempo por línea):</p>
+      <textarea id="timesInput" rows="4" placeholder="0:00&#10;0:10&#10;0:25&#10;0:40" style="width:100%;resize:vertical;padding:8px;border-radius:8px;border:1px solid var(--border);background:var(--bg);color:var(--text);font-size:12px;font-family:monospace;"></textarea>
       <div class="row" style="margin-top:8px;">
         <button id="applyTimesBtn" class="primary small">✅ Aplicar tiempos</button>
       </div>
@@ -133,7 +133,7 @@
     <div class="card">
       <h2>Patrón rápido de 3 Movimientos</h2>
       <div class="pattern-box">
-        <p style="font-size:12px;margin:0 0 6px;">Aplica automáticamente una secuencia cíclica a toda la lista:</p>
+        <p style="font-size:12px;margin:0 0 6px;">Aplica automáticamente una secuencia de 3 movimientos intercalados:</p>
         <div class="row" style="gap:4px;margin-bottom:8px;">
           <select id="mov1" style="flex:1;">
             <option value="in">1. Zoom In</option>
@@ -152,12 +152,12 @@
             <option value="pan-du">3. Paneo Abajo</option>
           </select>
         </div>
-        <button id="applyPatternBtn" class="small primary" style="width:100%;">🔄 Aplicar secuencia de 3 a todas las imágenes</button>
+        <button id="applyPatternBtn" class="small primary" style="width:100%;">🔄 Aplicar secuencia a todas las imágenes</button>
       </div>
     </div>
 
     <div class="card">
-      <h2>Filtro de Color</h2>
+      <h2>Filtro de Color Global</h2>
       <div class="row">
         <select id="globalFilterSelect" style="flex:1;">
           <option value="none">🎨 Sin filtro</option>
@@ -256,10 +256,13 @@
     return m + ':' + String(s).padStart(2,'0');
   }
 
+  // Convertir min:seg a segundos
   function parseTimeToSeconds(str){
-    const parts = str.trim().split(':').map(Number);
-    if(parts.length === 2) return parts[0]*60 + parts[1];
-    if(parts.length === 1) return parts[0];
+    if(!str) return null;
+    const clean = str.trim().replace(/[^0-9:]/g, '');
+    const parts = clean.split(':').map(Number);
+    if(parts.length === 2) return (parts[0] * 60) + parts[1];
+    if(parts.length === 1 && !isNaN(parts[0])) return parts[0];
     return null;
   }
 
@@ -272,7 +275,7 @@
   aspectSelect.addEventListener('change', applyCanvasSize);
   qualitySelect.addEventListener('change', applyCanvasSize);
 
-  // Carga de Audio
+  // Audio
   audioDrop.addEventListener('click', ()=> audioInput.click());
   audioInput.addEventListener('change', e=>{
     const f = e.target.files[0];
@@ -287,7 +290,7 @@
     };
   });
 
-  // Carga de Imágenes/Videos
+  // Imagen / Video
   imgDrop.addEventListener('click', ()=> imgInput.click());
   imgInput.addEventListener('change', e=>{
     const files = Array.from(e.target.files);
@@ -313,7 +316,7 @@
     imgInput.value = '';
   });
 
-  // Renderizado con Controles Individuales de Movimiento
+  // Renderizado
   function renderClipList(){
     clipList.innerHTML = '';
     emptyHint.style.display = clips.length ? 'none' : 'block';
@@ -336,16 +339,15 @@
       const line = document.createElement('div');
       line.className = 'controls-line';
 
-      // Duración individual
       const durInput = document.createElement('input');
       durInput.type = 'number'; durInput.min = '0.3'; durInput.step = '0.1'; durInput.value = c.duration;
+      durInput.title = "Duración en segundos";
       durInput.addEventListener('input', ()=>{
         c.duration = Math.max(0.3, parseFloat(durInput.value)||3);
         updateTotals();
       });
       line.appendChild(durInput);
 
-      // Movimiento Ken Burns Individual por Imagen
       const movSel = document.createElement('select');
       [
         ['in','🔍 Zoom In'],
@@ -366,7 +368,6 @@
       });
       line.appendChild(movSel);
 
-      // Borrar
       const delBtn = document.createElement('button');
       delBtn.className='small danger'; delBtn.textContent='✕';
       delBtn.addEventListener('click', ()=>{ clips.splice(idx,1); renderClipList(); updateTotals(); });
@@ -380,39 +381,50 @@
     if(!playing) drawFrame(0);
   }
 
-  // Lógica de Tiempos Corregida
+  // APLICAR TIEMPOS DE LA CAJA
   applyTimesBtn.addEventListener('click', ()=>{
-    if(!clips.length) return;
-    const lines = timesInput.value.split('\n').filter(l=> l.trim() !== '');
-    const timestamps = [];
+    if(!clips.length){
+      syncStatus.textContent = '⚠️ Primero sube algunas imágenes.';
+      return;
+    }
+    const text = timesInput.value;
+    const lines = text.split('\n');
+    const times = [];
 
-    lines.forEach(line=>{
-      const match = line.match(/(\d+:\d+|\d+)/);
-      if(match){
-        const sec = parseTimeToSeconds(match[0]);
-        if(sec !== null) timestamps.push(sec);
-      }
+    lines.forEach(l=>{
+      const sec = parseTimeToSeconds(l);
+      if(sec !== null) times.push(sec);
     });
 
-    if(timestamps.length === 0){
-      syncStatus.textContent = '⚠️ No se encontraron marcas de tiempo válidas.';
+    if(times.length === 0){
+      syncStatus.textContent = '⚠️ Escribe al menos un tiempo (ejemplo: 0:10).';
       return;
     }
 
-    timestamps.sort((a,b)=> a - b);
+    times.sort((a,b)=> a - b);
+
     for(let i=0; i < clips.length; i++){
-      if(i < timestamps.length - 1){
-        clips[i].duration = Math.max(0.5, timestamps[i+1] - timestamps[i]);
-      } else if(i === timestamps.length - 1 && audioLoaded){
-        clips[i].duration = Math.max(0.5, audioDuration - timestamps[i]);
+      if(i < times.length - 1){
+        clips[i].duration = Math.max(0.5, Math.round((times[i+1] - times[i]) * 10) / 10);
+      } else if(i === times.length - 1 && audioLoaded && audioDuration > times[i]){
+        clips[i].duration = Math.max(0.5, Math.round((audioDuration - times[i]) * 10) / 10);
       }
     }
 
     renderClipList();
-    syncStatus.textContent = '✅ Tiempos aplicados correctamente.';
+    syncStatus.textContent = '✅ ¡Tiempos repartidos correctamente!';
   });
 
-  // Patrón de 3 Movimientos
+  // REPARTIR POR IGUAL
+  autoDistBtn.addEventListener('click', ()=>{
+    if(!clips.length) return;
+    const dur = audioLoaded ? audioDuration : totalClipsDuration() || 10;
+    const each = Math.max(0.5, dur/clips.length);
+    clips.forEach(c=> c.duration = Math.round(each*10)/10);
+    renderClipList();
+    syncStatus.textContent = '✅ Tiempo total dividido por igual entre las imágenes.';
+  });
+
   applyPatternBtn.addEventListener('click', ()=>{
     if(!clips.length) return;
     const pattern = [mov1.value, mov2.value, mov3.value];
@@ -424,14 +436,12 @@
     renderClipList();
   });
 
-  // Filtro Global
   applyGlobalFilterBtn.addEventListener('click', ()=>{
     const filter = globalFilterSelect.value;
     clips.forEach(c=> c.filter = filter);
     if(!playing) drawFrame(0);
   });
 
-  // Dibujado de Cuadros
   function drawClipFrame(clip, localT, alpha){
     const isVid = clip.type === 'video';
     const media = isVid ? clip.video : clip.img;
@@ -488,7 +498,6 @@
     drawClipFrame(clips[index], localT, 1);
   }
 
-  // Reproducción
   function tick(){
     const total = totalDuration();
     let t = audioLoaded && !audioEl.paused ? audioEl.currentTime : (performance.now()/1000) - manualStart;
@@ -516,19 +525,9 @@
 
   playBtn.addEventListener('click', ()=>{ if(playing) stopPlayback(); else startPlayback(); });
   stopBtn.addEventListener('click', stopPlayback);
-
-  autoDistBtn.addEventListener('click', ()=>{
-    if(!clips.length) return;
-    const dur = audioLoaded ? audioDuration : totalClipsDuration() || 10;
-    const each = Math.max(0.5, dur/clips.length);
-    clips.forEach(c=> c.duration = Math.round(each*10)/10);
-    renderClipList();
-  });
-
   clearAllBtn.addEventListener('click', ()=>{ clips = []; renderClipList(); });
   function updateTotals(){ timeTotal.textContent = fmt(totalDuration()); }
 
-  // Exportación
   exportBtn.addEventListener('click', async ()=>{
     if(!clips.length) return;
     if(playing) stopPlayback();
