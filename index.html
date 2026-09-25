@@ -3,13 +3,12 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>AutoClip — Editor Pro con Video, Audio Largo y Efectos</title>
+<title>AutoClip Studio Pro</title>
 <style>
   :root{
     --bg:#f5f5f7; --panel:#ffffff; --text:#1b1b1f; --muted:#6b6b76;
     --accent:#7c5cff; --accent-2:#ff6fa5; --border:#e2e2e8; --danger:#e5484d;
-    --shadow: 0 2px 10px rgba(0,0,0,.06);
-    --radius: 14px;
+    --shadow: 0 2px 10px rgba(0,0,0,.06); --radius: 14px;
   }
   @media (prefers-color-scheme: dark){
     :root:not([data-theme="light"]){
@@ -17,90 +16,50 @@
       --border:#2c2c33; --shadow: 0 2px 14px rgba(0,0,0,.4);
     }
   }
-  :root[data-theme="dark"]{
-    --bg:#111114; --panel:#1a1a1f; --text:#f0f0f3; --muted:#9a9aa5;
-    --border:#2c2c33; --shadow: 0 2px 14px rgba(0,0,0,.4);
-  }
   *{box-sizing:border-box;}
-  body{
-    margin:0; background:var(--bg); color:var(--text);
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-    min-height:100vh;
-  }
+  body{ margin:0; background:var(--bg); color:var(--text); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; min-height:100vh; }
   header{ padding:20px 24px 8px; text-align:center; }
-  header h1{
-    margin:0; font-size:22px; font-weight:800;
-    background:linear-gradient(90deg,var(--accent),var(--accent-2));
-    -webkit-background-clip:text; background-clip:text; color:transparent;
-  }
-  header p{margin:4px 0 0; color:var(--muted); font-size:13px;}
+  header h1{ margin:0; font-size:22px; font-weight:800; background:linear-gradient(90deg,var(--accent),var(--accent-2)); -webkit-background-clip:text; background-clip:text; color:transparent; }
+  header p{ margin:4px 0 0; color:var(--muted); font-size:13px; }
   .wrap{ display:flex; gap:18px; padding:16px; max-width:1350px; margin:0 auto; flex-wrap:wrap; }
-  .col{flex:1 1 380px; min-width:320px;}
-  .card{
-    background:var(--panel); border:1px solid var(--border); border-radius:var(--radius);
-    padding:16px; box-shadow:var(--shadow); margin-bottom:16px;
-  }
-  .card h2{margin:0 0 10px; font-size:15px; font-weight:700; display:flex; align-items:center; gap:8px;}
-  .dropzone{
-    border:2px dashed var(--border); border-radius:12px; padding:22px; text-align:center;
-    color:var(--muted); cursor:pointer; transition:.15s; font-size:13px;
-  }
-  .dropzone:hover{border-color:var(--accent); color:var(--accent);}
-  input[type=file]{display:none;}
-  button{
-    font-family:inherit; border:none; border-radius:10px; padding:10px 16px; font-size:13px;
-    font-weight:600; cursor:pointer; transition:.15s; background:var(--border); color:var(--text);
-  }
-  button:hover{filter:brightness(1.08);}
-  button:disabled{opacity:.45; cursor:not-allowed;}
-  button.primary{background:linear-gradient(90deg,var(--accent),var(--accent-2)); color:#fff;}
-  button.small{padding:6px 10px; font-size:12px; border-radius:8px;}
-  button.danger{background:transparent; color:var(--danger);}
-  .row{display:flex; gap:8px; align-items:center; flex-wrap:wrap;}
-  #clipList{list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:8px;}
-  .clip{
-    display:flex; gap:10px; align-items:center; background:var(--bg); border:1px solid var(--border);
-    border-radius:10px; padding:8px; cursor:grab;
-  }
-  .clip.dragging{opacity:.4;}
-  .clip .media-preview{width:64px; height:40px; object-fit:cover; border-radius:6px; flex-shrink:0; background:#000;}
-  .clip .meta{flex:1; min-width:0; display:flex; flex-direction:column; gap:4px;}
-  .clip .meta .name{font-size:12px; color:var(--muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
-  .clip .controls-line{display:flex; gap:6px; align-items:center; flex-wrap:wrap;}
-  .clip input[type=number]{
-    width:56px; padding:4px 6px; border-radius:6px; border:1px solid var(--border);
-    background:var(--panel); color:var(--text); font-size:12px;
-  }
-  .clip select, select{
-    padding:6px 8px; border-radius:6px; border:1px solid var(--border);
-    background:var(--panel); color:var(--text); font-size:12px;
-  }
-  .empty-hint{color:var(--muted); font-size:12px; text-align:center; padding:10px;}
-  .previewBox{
-    background:#000; border-radius:12px; overflow:hidden; position:relative; aspect-ratio:16/9;
-  }
-  canvas{width:100%; height:100%; display:block;}
-  .playbar{margin-top:10px;}
-  .track{
-    height:6px; background:var(--border); border-radius:4px; position:relative; cursor:pointer; margin:8px 0;
-  }
-  .track .fill{position:absolute; left:0; top:0; height:100%; background:var(--accent); border-radius:4px; width:0%;}
-  .timecodes{display:flex; justify-content:space-between; font-size:11px; color:var(--muted);}
-  .status{font-size:12px; color:var(--muted); min-height:16px; margin-top:6px;}
+  .col{ flex:1 1 380px; min-width:320px; }
+  .card{ background:var(--panel); border:1px solid var(--border); border-radius:var(--radius); padding:16px; box-shadow:var(--shadow); margin-bottom:16px; }
+  .card h2{ margin:0 0 10px; font-size:15px; font-weight:700; display:flex; align-items:center; gap:8px; }
+  .dropzone{ border:2px dashed var(--border); border-radius:12px; padding:20px; text-align:center; color:var(--muted); cursor:pointer; transition:.15s; font-size:13px; }
+  .dropzone:hover{ border-color:var(--accent); color:var(--accent); }
+  input[type=file]{ display:none; }
+  button{ font-family:inherit; border:none; border-radius:10px; padding:10px 16px; font-size:13px; font-weight:600; cursor:pointer; transition:.15s; background:var(--border); color:var(--text); }
+  button:hover{ filter:brightness(1.08); }
+  button.primary{ background:linear-gradient(90deg,var(--accent),var(--accent-2)); color:#fff; }
+  button.small{ padding:6px 10px; font-size:12px; border-radius:8px; }
+  button.danger{ background:transparent; color:var(--danger); }
+  .row{ display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+  #clipList{ list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:8px; }
+  .clip{ display:flex; gap:10px; align-items:center; background:var(--bg); border:1px solid var(--border); border-radius:10px; padding:8px; }
+  .clip .media-preview{ width:64px; height:40px; object-fit:cover; border-radius:6px; flex-shrink:0; background:#000; }
+  .clip .meta{ flex:1; min-width:0; display:flex; flex-direction:column; gap:6px; }
+  .clip .meta .name{ font-size:12px; color:var(--muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .clip .controls-line{ display:flex; gap:6px; align-items:center; flex-wrap:wrap; }
+  .clip input[type=number]{ width:56px; padding:4px 6px; border-radius:6px; border:1px solid var(--border); background:var(--panel); color:var(--text); font-size:12px; }
+  .clip select, select{ padding:6px 8px; border-radius:6px; border:1px solid var(--border); background:var(--panel); color:var(--text); font-size:12px; }
+  .empty-hint{ color:var(--muted); font-size:12px; text-align:center; padding:10px; }
+  .previewBox{ background:#000; border-radius:12px; overflow:hidden; position:relative; aspect-ratio:16/9; }
+  canvas{ width:100%; height:100%; display:block; }
+  .playbar{ margin-top:10px; }
+  .track{ height:6px; background:var(--border); border-radius:4px; position:relative; cursor:pointer; margin:8px 0; }
+  .track .fill{ position:absolute; left:0; top:0; height:100%; background:var(--accent); border-radius:4px; width:0%; }
+  .timecodes{ display:flex; justify-content:space-between; font-size:11px; color:var(--muted); }
+  .status{ font-size:12px; color:var(--muted); min-height:16px; margin-top:6px; }
   .badge{ font-size:10px; padding:2px 7px; border-radius:20px; background:var(--border); color:var(--muted); font-weight:700; }
-  .kbRow label{font-size:12px; color:var(--muted); display:flex; align-items:center; gap:6px;}
-  input[type=range]{accent-color:var(--accent);}
-  audio{width:100%; margin-top:6px;}
-  .pattern-box{
-    background:var(--bg); border:1px solid var(--border); padding:10px; border-radius:10px; margin-top:8px;
-  }
+  audio{ width:100%; margin-top:6px; }
+  .pattern-box{ background:var(--bg); border:1px solid var(--border); padding:10px; border-radius:10px; margin-top:8px; }
 </style>
 </head>
 <body>
 
 <header>
   <h1>🎬 AutoClip Studio Pro</h1>
-  <p>Sube imágenes, videos y audios largos (hasta 1 hora). Aplica filtros, efectos y secuencias de movimiento Ken Burns.</p>
+  <p>Sube imágenes, videos y audios largos. Configura movimientos individuales o patrones de animación.</p>
 </header>
 
 <div class="wrap">
@@ -108,15 +67,15 @@
   <div class="col">
     <div class="card">
       <h2>1. Narración / Audio (Hasta 1 Hora)</h2>
-      <div class="dropzone" id="audioDrop">🎙️ Haz clic para subir tu audio (mp3, wav, m4a, etc.)</div>
+      <div class="dropzone" id="audioDrop">🎙️ Haz clic para subir audio (mp3, wav, m4a)</div>
       <input type="file" id="audioInput" accept="audio/*">
       <audio id="audioEl" controls style="display:none;"></audio>
-      <div class="status" id="audioStatus">Sin audio cargado. Puedes usar la app solo con video/imágenes.</div>
+      <div class="status" id="audioStatus">Sin audio cargado.</div>
     </div>
 
     <div class="card">
       <h2>2. Medios (Imágenes o Videos)</h2>
-      <div class="dropzone" id="imgDrop">🖼️ / 🎥 Sube imágenes o clips de video</div>
+      <div class="dropzone" id="imgDrop">🖼️ / 🎥 Sube imágenes o videos</div>
       <input type="file" id="imgInput" accept="image/*,video/*" multiple>
       <div class="row" style="margin-top:10px;">
         <button id="autoDistBtn" class="small">⏱ Repartir tiempo según audio</button>
@@ -125,9 +84,9 @@
     </div>
 
     <div class="card">
-      <h2>3. Sincronización de tiempos <span class="badge">Opcional</span></h2>
-      <p style="font-size:12px;color:var(--muted);margin:0 0 8px;">Pega un tiempo por línea (mm:ss o segundos) para indicar cuándo cambia la imagen o video.</p>
-      <textarea id="timesInput" rows="4" placeholder="0:00 Inicio del tema&#10;0:45 Segundo clip&#10;03:12 Tercera escena" style="width:100%;resize:vertical;padding:8px;border-radius:8px;border:1px solid var(--border);background:var(--bg);color:var(--text);font-size:12px;font-family:monospace;"></textarea>
+      <h2>3. Sincronización de tiempos</h2>
+      <p style="font-size:12px;color:var(--muted);margin:0 0 8px;">Pega los tiempos por línea (ej: 0:00, 0:15, 0:45) para asignar la duración a cada escena.</p>
+      <textarea id="timesInput" rows="4" placeholder="0:00 Escena 1&#10;0:15 Escena 2&#10;0:40 Escena 3" style="width:100%;resize:vertical;padding:8px;border-radius:8px;border:1px solid var(--border);background:var(--bg);color:var(--text);font-size:12px;font-family:monospace;"></textarea>
       <div class="row" style="margin-top:8px;">
         <button id="applyTimesBtn" class="primary small">✅ Aplicar tiempos</button>
       </div>
@@ -135,9 +94,9 @@
     </div>
 
     <div class="card">
-      <h2>4. Línea de tiempo <span class="badge" id="clipCount">0 elementos</span></h2>
+      <h2>4. Línea de tiempo y Movimientos <span class="badge" id="clipCount">0 elementos</span></h2>
       <ul id="clipList"></ul>
-      <div class="empty-hint" id="emptyHint">Aún no has agregado contenido. Sube archivos arriba.</div>
+      <div class="empty-hint" id="emptyHint">Aún no has agregado archivos.</div>
     </div>
   </div>
 
@@ -148,14 +107,12 @@
       <div class="row">
         <select id="aspectSelect">
           <option value="16:9">16:9 — Horizontal (YouTube)</option>
-          <option value="9:16">9:16 — Vertical (Reels/TikTok/Shorts)</option>
+          <option value="9:16">9:16 — Vertical (TikTok/Reels)</option>
           <option value="1:1">1:1 — Cuadrado (Instagram)</option>
-          <option value="4:3">4:3 — Clásico</option>
         </select>
         <select id="qualitySelect">
-          <option value="720p">720p (Rápido)</option>
-          <option value="1080p" selected>1080p (Full HD)</option>
-          <option value="4k">4K (Ultra HD)</option>
+          <option value="720p">720p</option>
+          <option value="1080p" selected>1080p Full HD</option>
         </select>
       </div>
     </div>
@@ -173,103 +130,50 @@
       </div>
     </div>
 
-    <!-- PATRÓN DE MOVIMIENTOS INTERCALADOS (HASTA 3) -->
     <div class="card">
-      <h2>Movimiento Ken Burns / Animación</h2>
-      <div class="kbRow">
-        <label>Intensidad del zoom
-          <input type="range" id="kbIntensity" min="0.05" max="0.4" step="0.05" value="0.18" style="flex:1;">
-        </label>
-      </div>
-      
+      <h2>Patrón rápido de 3 Movimientos</h2>
       <div class="pattern-box">
-        <p style="font-size:12px;margin:0 0 6px;font-weight:600;">Secuencia de hasta 3 movimientos (se repiten en ciclo):</p>
+        <p style="font-size:12px;margin:0 0 6px;">Aplica automáticamente una secuencia cíclica a toda la lista:</p>
         <div class="row" style="gap:4px;margin-bottom:8px;">
           <select id="mov1" style="flex:1;">
-            <option value="in">1. 🔍+ Zoom In</option>
-            <option value="out">1. 🔍- Zoom Out</option>
-            <option value="pan-lr" selected>1. ➡ Paneo Derecha</option>
-            <option value="pan-rl">1. ⬅ Paneo Izquierda</option>
-            <option value="static">1. ⏹ Estático</option>
+            <option value="in">1. Zoom In</option>
+            <option value="out">1. Zoom Out</option>
+            <option value="pan-lr" selected>1. Paneo Der</option>
+            <option value="pan-rl">1. Paneo Izq</option>
           </select>
           <select id="mov2" style="flex:1;">
-            <option value="in" selected>2. 🔍+ Zoom In</option>
-            <option value="out">2. 🔍- Zoom Out</option>
-            <option value="pan-lr">2. ➡ Paneo Derecha</option>
-            <option value="pan-rl">2. ⬅ Paneo Izquierda</option>
-            <option value="static">2. ⏹ Estático</option>
+            <option value="in" selected>2. Zoom In</option>
+            <option value="out">2. Zoom Out</option>
+            <option value="pan-lr">2. Paneo Der</option>
           </select>
           <select id="mov3" style="flex:1;">
-            <option value="in">3. 🔍+ Zoom In</option>
-            <option value="out" selected>3. 🔍- Zoom Out</option>
-            <option value="pan-lr">3. ➡ Paneo Derecha</option>
-            <option value="pan-du">3. ⬇ Paneo Abajo</option>
-            <option value="static">3. ⏹ Estático</option>
+            <option value="out" selected>3. Zoom Out</option>
+            <option value="pan-lr">3. Paneo Der</option>
+            <option value="pan-du">3. Paneo Abajo</option>
           </select>
         </div>
-        <button id="applyPatternBtn" class="small primary" style="width:100%;">🔄 Aplicar patrón de 3 movimientos a todo el video</button>
+        <button id="applyPatternBtn" class="small primary" style="width:100%;">🔄 Aplicar secuencia de 3 a todas las imágenes</button>
       </div>
     </div>
 
-    <!-- FILTROS GLOBALES -->
     <div class="card">
       <h2>Filtro de Color</h2>
       <div class="row">
         <select id="globalFilterSelect" style="flex:1;">
-          <option value="none">🎨 Sin filtro / Original</option>
-          <option value="vivid">✨ Vívido y Contrastado</option>
-          <option value="warm">🔥 Cálido / Atardecer</option>
-          <option value="cool">❄️ Frío / Cinematográfico</option>
-          <option value="vintage">📼 Vintage / Retro</option>
+          <option value="none">🎨 Sin filtro</option>
+          <option value="vivid">✨ Vívido</option>
+          <option value="warm">🔥 Cálido</option>
+          <option value="cool">❄️ Frío</option>
           <option value="bw">⚫ Blanco y Negro</option>
-          <option value="sepia">🟤 Sepia Clásico</option>
+          <option value="sepia">🟤 Sepia</option>
         </select>
-        <button id="applyGlobalFilterBtn" class="small">Aplicar a todas las escenas</button>
+        <button id="applyGlobalFilterBtn" class="small">Aplicar a todo</button>
       </div>
     </div>
 
-    <!-- EFECTOS ESPECIALES SUPERPUESTOS -->
-    <div class="card">
-      <h2>Efectos Mágicos y Capas</h2>
-      <div class="row">
-        <select id="overlayEffectSelect" style="flex:1;">
-          <option value="none">🚫 Sin efecto superpuesto</option>
-          <option value="sparks">✨ Chispas mágicas / Destellos</option>
-          <option value="snow">❄️ Polvo atmosférico / Nieve</option>
-          <option value="neon">🚨 Marco Neón pulsante</option>
-          <option value="vhs">📼 Artefactos Glitch / VHS</option>
-        </select>
-      </div>
-    </div>
-
-    <!-- STICKERS -->
-    <div class="card">
-      <h2>Stickers y Mensajes</h2>
-      <div class="row">
-        <select id="stickerType">
-          <option value="subscribe">🔔 Suscríbete</option>
-          <option value="like">❤️ Dale Like</option>
-          <option value="share">📤 Comparte</option>
-          <option value="custom">✏️ Texto Personalizado</option>
-        </select>
-        <input type="text" id="stickerCustomText" placeholder="Tu texto aquí" style="display:none;flex:1;padding:6px 8px;border-radius:6px;border:1px solid var(--border);background:var(--bg);color:var(--text);font-size:12px;">
-      </div>
-      <div class="row" style="margin-top:8px;">
-        <select id="stickerPosition" style="flex:1;">
-          <option value="bottom-right" selected>↘ Abajo Derecha</option>
-          <option value="bottom-left">↙ Abajo Izquierda</option>
-          <option value="top-right">↗ Arriba Derecha</option>
-          <option value="center">⏺ Centro</option>
-        </select>
-        <button id="addStickerBtn" class="primary small">➕ Agregar</button>
-      </div>
-      <ul id="stickerList" style="list-style:none;margin:10px 0 0;padding:0;display:flex;flex-direction:column;gap:6px;"></ul>
-    </div>
-
-    <!-- EXPORTACIÓN -->
     <div class="card">
       <h2>Exportación de Video</h2>
-      <button id="exportBtn" class="primary" style="width:100%;padding:12px;">⬇ Generar y Descargar Video Completo</button>
+      <button id="exportBtn" class="primary" style="width:100%;padding:12px;">⬇ Generar y Descargar Video</button>
       <div class="status" id="exportStatus"></div>
     </div>
   </div>
@@ -290,11 +194,9 @@
   const emptyHint = document.getElementById('emptyHint');
   const playBtn = document.getElementById('playBtn');
   const stopBtn = document.getElementById('stopBtn');
-  const track = document.getElementById('track');
   const trackFill = document.getElementById('trackFill');
   const timeNow = document.getElementById('timeNow');
   const timeTotal = document.getElementById('timeTotal');
-  const kbIntensity = document.getElementById('kbIntensity');
   const aspectSelect = document.getElementById('aspectSelect');
   const qualitySelect = document.getElementById('qualitySelect');
   const previewBox = document.getElementById('previewBox');
@@ -312,52 +214,29 @@
   const applyPatternBtn = document.getElementById('applyPatternBtn');
   const globalFilterSelect = document.getElementById('globalFilterSelect');
   const applyGlobalFilterBtn = document.getElementById('applyGlobalFilterBtn');
-  const overlayEffectSelect = document.getElementById('overlayEffectSelect');
-
-  const stickerType = document.getElementById('stickerType');
-  const stickerCustomText = document.getElementById('stickerCustomText');
-  const stickerPosition = document.getElementById('stickerPosition');
-  const addStickerBtn = document.getElementById('addStickerBtn');
-  const stickerList = document.getElementById('stickerList');
 
   const FILTER_CSS = {
-    none: 'none',
-    bw: 'grayscale(1)',
-    sepia: 'sepia(0.8) contrast(1.05)',
-    vintage: 'sepia(0.35) contrast(1.1) saturate(0.8) brightness(0.95)',
-    cool: 'hue-rotate(15deg) saturate(1.15) brightness(1.02)',
-    warm: 'sepia(0.25) saturate(1.35) hue-rotate(-8deg)',
-    vivid: 'saturate(1.6) contrast(1.15)'
+    none: 'none', bw: 'grayscale(1)', sepia: 'sepia(0.8)',
+    cool: 'hue-rotate(15deg) saturate(1.15)', warm: 'sepia(0.25) saturate(1.35)', vivid: 'saturate(1.6) contrast(1.15)'
   };
 
   const RES = {
-    '16:9': {'720p':[1280,720], '1080p':[1920,1080], '4k':[3840,2160]},
-    '9:16': {'720p':[720,1280], '1080p':[1080,1920], '4k':[2160,3840]},
-    '1:1':  {'720p':[720,720],  '1080p':[1080,1080], '4k':[2160,2160]},
-    '4:3':  {'720p':[960,720],  '1080p':[1440,1080], '4k':[2880,2160]}
+    '16:9': {'720p':[1280,720], '1080p':[1920,1080]},
+    '9:16': {'720p':[720,1280], '1080p':[1080,1920]},
+    '1:1':  {'720p':[720,720],  '1080p':[1080,1080]}
   };
 
-  let stickers = [];
   let clips = [];
   let audioLoaded = false;
   let audioDuration = 0;
   let playing = false;
   let rafId = null;
   let manualStart = 0;
-  let dragSrcIndex = null;
-  const TRANSITION_DUR = 0.6;
-
-  // Partículas para efectos mágicos
-  const particles = Array.from({length:40}, ()=>({
-    x: Math.random(), y: Math.random(),
-    speed: 0.002 + Math.random()*0.005,
-    size: 2 + Math.random()*4
-  }));
 
   function uid(){ return Math.random().toString(36).slice(2,9); }
 
-  function buildKB(style, intensity){
-    intensity = intensity || 0.18;
+  function buildKB(style){
+    const intensity = 0.18;
     switch(style){
       case 'in': return {s0:1, s1:1+intensity*1.6, x0:0.5, y0:0.5, x1:0.5, y1:0.5};
       case 'out': return {s0:1+intensity*1.6, s1:1, x0:0.5, y0:0.5, x1:0.5, y1:0.5};
@@ -377,6 +256,13 @@
     return m + ':' + String(s).padStart(2,'0');
   }
 
+  function parseTimeToSeconds(str){
+    const parts = str.trim().split(':').map(Number);
+    if(parts.length === 2) return parts[0]*60 + parts[1];
+    if(parts.length === 1) return parts[0];
+    return null;
+  }
+
   function applyCanvasSize(){
     const [w,h] = RES[aspectSelect.value][qualitySelect.value];
     canvas.width = w; canvas.height = h;
@@ -391,18 +277,17 @@
   audioInput.addEventListener('change', e=>{
     const f = e.target.files[0];
     if(!f) return;
-    const url = URL.createObjectURL(f);
-    audioEl.src = url;
+    audioEl.src = URL.createObjectURL(f);
     audioEl.style.display = 'block';
     audioEl.onloadedmetadata = ()=>{
       audioLoaded = true;
       audioDuration = audioEl.duration;
-      audioStatus.textContent = '✅ Audio cargado: ' + f.name + ' (' + fmt(audioDuration) + ')';
+      audioStatus.textContent = '✅ Audio: ' + f.name + ' (' + fmt(audioDuration) + ')';
       updateTotals();
     };
   });
 
-  // Carga de Imágenes y Videos
+  // Carga de Imágenes/Videos
   imgDrop.addEventListener('click', ()=> imgInput.click());
   imgInput.addEventListener('change', e=>{
     const files = Array.from(e.target.files);
@@ -411,27 +296,15 @@
       const isVideo = f.type.startsWith('video/');
       if(isVideo){
         const video = document.createElement('video');
-        video.src = url;
-        video.muted = true;
-        video.playsInline = true;
+        video.src = url; video.muted = true; video.playsInline = true;
         video.onloadedmetadata = ()=>{
-          clips.push({
-            id: uid(), name: f.name, type:'video', video, url,
-            duration: video.duration || 5,
-            kbStyle: 'static', kb: buildKB('static'),
-            transitionOut: 'fade', filter: 'none'
-          });
+          clips.push({ id: uid(), name: f.name, type:'video', video, url, duration: video.duration||5, kbStyle:'static', kb: buildKB('static'), filter:'none' });
           renderClipList();
         };
       } else {
         const img = new Image();
         img.onload = ()=>{
-          clips.push({
-            id: uid(), name: f.name, type:'image', img, url,
-            duration: 3,
-            kbStyle: 'in', kb: buildKB('in', parseFloat(kbIntensity.value)),
-            transitionOut: 'fade', filter: 'none'
-          });
+          clips.push({ id: uid(), name: f.name, type:'image', img, url, duration: 3, kbStyle:'in', kb: buildKB('in'), filter:'none' });
           renderClipList();
         };
         img.src = url;
@@ -440,7 +313,7 @@
     imgInput.value = '';
   });
 
-  // Renderizado de la lista
+  // Renderizado con Controles Individuales de Movimiento
   function renderClipList(){
     clipList.innerHTML = '';
     emptyHint.style.display = clips.length ? 'none' : 'block';
@@ -448,7 +321,6 @@
     clips.forEach((c, idx)=>{
       const li = document.createElement('li');
       li.className = 'clip';
-      li.draggable = true;
 
       const media = c.type==='video' ? document.createElement('video') : document.createElement('img');
       media.src = c.url; media.className = 'media-preview';
@@ -464,6 +336,7 @@
       const line = document.createElement('div');
       line.className = 'controls-line';
 
+      // Duración individual
       const durInput = document.createElement('input');
       durInput.type = 'number'; durInput.min = '0.3'; durInput.step = '0.1'; durInput.value = c.duration;
       durInput.addEventListener('input', ()=>{
@@ -472,15 +345,28 @@
       });
       line.appendChild(durInput);
 
-      const transSel = document.createElement('select');
-      [['fade','Fundido'],['slide','Deslizar'],['zoom','Zoom'],['cut','Corte']].forEach(([t,label])=>{
-        const opt = document.createElement('option'); opt.value = t; opt.textContent = label;
-        if(c.transitionOut===t) opt.selected = true;
-        transSel.appendChild(opt);
+      // Movimiento Ken Burns Individual por Imagen
+      const movSel = document.createElement('select');
+      [
+        ['in','🔍 Zoom In'],
+        ['out','🔍 Zoom Out'],
+        ['pan-lr','➡ Paneo Der'],
+        ['pan-rl','⬅ Paneo Izq'],
+        ['pan-du','⬇ Paneo Abajo'],
+        ['static','⏹ Estático']
+      ].forEach(([val, label])=>{
+        const opt = document.createElement('option'); opt.value = val; opt.textContent = label;
+        if(c.kbStyle===val) opt.selected = true;
+        movSel.appendChild(opt);
       });
-      transSel.addEventListener('change', ()=>{ c.transitionOut = transSel.value; });
-      line.appendChild(transSel);
+      movSel.addEventListener('change', ()=>{
+        c.kbStyle = movSel.value;
+        c.kb = buildKB(movSel.value);
+        if(!playing) drawFrame(0);
+      });
+      line.appendChild(movSel);
 
+      // Borrar
       const delBtn = document.createElement('button');
       delBtn.className='small danger'; delBtn.textContent='✕';
       delBtn.addEventListener('click', ()=>{ clips.splice(idx,1); renderClipList(); updateTotals(); });
@@ -494,19 +380,48 @@
     if(!playing) drawFrame(0);
   }
 
-  // Aplicar Patrón de hasta 3 movimientos
+  // Lógica de Tiempos Corregida
+  applyTimesBtn.addEventListener('click', ()=>{
+    if(!clips.length) return;
+    const lines = timesInput.value.split('\n').filter(l=> l.trim() !== '');
+    const timestamps = [];
+
+    lines.forEach(line=>{
+      const match = line.match(/(\d+:\d+|\d+)/);
+      if(match){
+        const sec = parseTimeToSeconds(match[0]);
+        if(sec !== null) timestamps.push(sec);
+      }
+    });
+
+    if(timestamps.length === 0){
+      syncStatus.textContent = '⚠️ No se encontraron marcas de tiempo válidas.';
+      return;
+    }
+
+    timestamps.sort((a,b)=> a - b);
+    for(let i=0; i < clips.length; i++){
+      if(i < timestamps.length - 1){
+        clips[i].duration = Math.max(0.5, timestamps[i+1] - timestamps[i]);
+      } else if(i === timestamps.length - 1 && audioLoaded){
+        clips[i].duration = Math.max(0.5, audioDuration - timestamps[i]);
+      }
+    }
+
+    renderClipList();
+    syncStatus.textContent = '✅ Tiempos aplicados correctamente.';
+  });
+
+  // Patrón de 3 Movimientos
   applyPatternBtn.addEventListener('click', ()=>{
     if(!clips.length) return;
     const pattern = [mov1.value, mov2.value, mov3.value];
     clips.forEach((c, idx)=>{
-      if(c.type==='image'){
-        const selectedMov = pattern[idx % 3];
-        c.kbStyle = selectedMov;
-        c.kb = buildKB(selectedMov, parseFloat(kbIntensity.value));
-      }
+      const selectedMov = pattern[idx % 3];
+      c.kbStyle = selectedMov;
+      c.kb = buildKB(selectedMov);
     });
     renderClipList();
-    alert('✅ Patrón de 3 movimientos aplicado a todas las imágenes.');
   });
 
   // Filtro Global
@@ -514,11 +429,10 @@
     const filter = globalFilterSelect.value;
     clips.forEach(c=> c.filter = filter);
     if(!playing) drawFrame(0);
-    alert('✅ Filtro de color aplicado a todo el video.');
   });
 
-  // Dibujado de Frames
-  function drawClipFrame(clip, localT, dx, dy, alpha){
+  // Dibujado de Cuadros
+  function drawClipFrame(clip, localT, alpha){
     const isVid = clip.type === 'video';
     const media = isVid ? clip.video : clip.img;
     if(!media) return;
@@ -551,7 +465,7 @@
     ctx.save();
     ctx.globalAlpha = alpha;
     ctx.filter = FILTER_CSS[clip.filter] || 'none';
-    ctx.drawImage(media, sx, sy, cropW, cropH, dx, dy, cw, ch);
+    ctx.drawImage(media, sx, sy, cropW, cropH, 0, 0, cw, ch);
     ctx.filter = 'none';
     ctx.restore();
   }
@@ -566,93 +480,12 @@
     return {index:0, segStart:0, localT:0};
   }
 
-  function drawOverlayEffects(t){
-    const effect = overlayEffectSelect.value;
-    if(effect==='none') return;
-
-    if(effect==='sparks' || effect==='snow'){
-      ctx.save();
-      ctx.fillStyle = effect==='sparks' ? '#ffdf6d' : '#ffffff';
-      particles.forEach(p=>{
-        p.y += p.speed; if(p.y > 1) p.y = 0;
-        ctx.beginPath();
-        ctx.arc(p.x*canvas.width, p.y*canvas.height, p.size, 0, Math.PI*2);
-        ctx.fill();
-      });
-      ctx.restore();
-    } else if(effect==='neon'){
-      ctx.save();
-      ctx.strokeStyle = `hsl(${(t*100)%360}, 100%, 50%)`;
-      ctx.lineWidth = 14;
-      ctx.strokeRect(0,0,canvas.width,canvas.height);
-      ctx.restore();
-    } else if(effect==='vhs'){
-      ctx.save();
-      ctx.fillStyle = 'rgba(255,255,255,0.05)';
-      ctx.fillRect(0, Math.random()*canvas.height, canvas.width, 4);
-      ctx.restore();
-    }
-  }
-
   function drawFrame(t){
     ctx.fillStyle = '#000'; ctx.fillRect(0,0,canvas.width,canvas.height);
     if(!clips.length) return;
 
-    const {index, segStart, localT} = findSegment(t);
-    const clip = clips[index];
-    const prev = index>0 ? clips[index-1] : null;
-    const inTrans = prev && (t-segStart) < TRANSITION_DUR;
-
-    if(inTrans){
-      const alpha = (t-segStart)/TRANSITION_DUR;
-      drawClipFrame(prev, 1, 0, 0, 1);
-      drawClipFrame(clip, localT, 0, 0, alpha);
-    } else {
-      drawClipFrame(clip, localT, 0, 0, 1);
-    }
-
-    drawOverlayEffects(t);
-    drawStickers(t);
-  }
-
-  // Stickers y Control
-  stickerType.addEventListener('change', ()=>{
-    stickerCustomText.style.display = stickerType.value==='custom' ? 'block' : 'none';
-  });
-
-  addStickerBtn.addEventListener('click', ()=>{
-    const type = stickerType.value;
-    const text = type==='custom' ? (stickerCustomText.value || 'Texto') : type.toUpperCase();
-    stickers.push({id:uid(), text, position: stickerPosition.value});
-    renderStickers();
-    if(!playing) drawFrame(0);
-  });
-
-  function renderStickers(){
-    stickerList.innerHTML = '';
-    stickers.forEach((s, idx)=>{
-      const li = document.createElement('li');
-      li.style.cssText = 'display:flex;justify-content:space-between;background:var(--bg);padding:6px;border-radius:6px;font-size:12px;';
-      li.innerHTML = `<span>${s.text} (${s.position})</span>`;
-      const btn = document.createElement('button'); btn.className='small danger'; btn.textContent='✕';
-      btn.onclick = ()=>{ stickers.splice(idx,1); renderStickers(); if(!playing) drawFrame(0); };
-      li.appendChild(btn);
-      stickerList.appendChild(li);
-    });
-  }
-
-  function drawStickers(t){
-    stickers.forEach(s=>{
-      ctx.save();
-      ctx.font = 'bold ' + Math.round(canvas.width*0.035) + 'px sans-serif';
-      ctx.fillStyle = '#7c5cff';
-      const pad = 20;
-      let x = pad, y = canvas.height-pad;
-      if(s.position==='top-right') x = canvas.width - 250;
-      if(s.position==='center') { x = canvas.width/2 - 100; y = canvas.height/2; }
-      ctx.fillText(s.text, x, y);
-      ctx.restore();
-    });
+    const {index, localT} = findSegment(t);
+    drawClipFrame(clips[index], localT, 1);
   }
 
   // Reproducción
@@ -700,7 +533,7 @@
     if(!clips.length) return;
     if(playing) stopPlayback();
     exportBtn.disabled = true;
-    exportStatus.textContent = 'Procesando exportación de video...';
+    exportStatus.textContent = 'Procesando exportación...';
 
     const stream = canvas.captureStream(30);
     if(audioLoaded){
@@ -720,7 +553,7 @@
       const blob = new Blob(chunks, {type:'video/webm'});
       const a = document.createElement('a');
       a.href = URL.createObjectURL(blob);
-      a.download = 'autoclip-video-pro.webm';
+      a.download = 'autoclip-video.webm';
       a.click();
       exportStatus.textContent = '✅ ¡Video descargado correctamente!';
       exportBtn.disabled = false;
