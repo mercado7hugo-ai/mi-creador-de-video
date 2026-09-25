@@ -372,6 +372,26 @@
       });
       line.appendChild(movSel);
 
+      const filterSel = document.createElement('select');
+      [
+        ['none','🎨 Normal'],
+        ['vintage','📜 Vintage'],
+        ['vivid','✨ Vívido'],
+        ['warm','🔥 Cálido'],
+        ['cool','❄️ Frío'],
+        ['bw','⚫ B&N'],
+        ['sepia','🟤 Sepia']
+      ].forEach(([val, label])=>{
+        const opt = document.createElement('option'); opt.value = val; opt.textContent = label;
+        if(c.filter===val) opt.selected = true;
+        filterSel.appendChild(opt);
+      });
+      filterSel.addEventListener('change', ()=>{
+        c.filter = filterSel.value;
+        if(!playing) drawFrame(0);
+      });
+      line.appendChild(filterSel);
+
       const delBtn = document.createElement('button');
       delBtn.className='small danger'; delBtn.textContent='✕';
       delBtn.addEventListener('click', ()=>{ clips.splice(idx,1); renderClipList(); updateTotals(); });
@@ -443,7 +463,7 @@
   applyGlobalFilterBtn.addEventListener('click', ()=>{
     const filter = globalFilterSelect.value;
     clips.forEach(c=> c.filter = filter);
-    if(!playing) drawFrame(0);
+    renderClipList();
   });
 
   function drawClipFrame(clip, localT, alpha){
