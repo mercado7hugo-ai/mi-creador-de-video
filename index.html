@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>AutoClip — Creador de Video con Narración, Zoom y Transiciones</title>
+<title>AutoClip — Editor Pro con Video, Audio Largo y Efectos</title>
 <style>
   :root{
     --bg:#f5f5f7; --panel:#ffffff; --text:#1b1b1f; --muted:#6b6b76;
@@ -27,19 +27,14 @@
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     min-height:100vh;
   }
-  header{
-    padding:20px 24px 8px; text-align:center;
-  }
+  header{ padding:20px 24px 8px; text-align:center; }
   header h1{
     margin:0; font-size:22px; font-weight:800;
     background:linear-gradient(90deg,var(--accent),var(--accent-2));
     -webkit-background-clip:text; background-clip:text; color:transparent;
   }
   header p{margin:4px 0 0; color:var(--muted); font-size:13px;}
-  .wrap{
-    display:flex; gap:18px; padding:16px; max-width:1300px; margin:0 auto;
-    flex-wrap:wrap;
-  }
+  .wrap{ display:flex; gap:18px; padding:16px; max-width:1350px; margin:0 auto; flex-wrap:wrap; }
   .col{flex:1 1 380px; min-width:320px;}
   .card{
     background:var(--panel); border:1px solid var(--border); border-radius:var(--radius);
@@ -68,7 +63,7 @@
     border-radius:10px; padding:8px; cursor:grab;
   }
   .clip.dragging{opacity:.4;}
-  .clip img{width:64px; height:40px; object-fit:cover; border-radius:6px; flex-shrink:0;}
+  .clip .media-preview{width:64px; height:40px; object-fit:cover; border-radius:6px; flex-shrink:0; background:#000;}
   .clip .meta{flex:1; min-width:0; display:flex; flex-direction:column; gap:4px;}
   .clip .meta .name{font-size:12px; color:var(--muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
   .clip .controls-line{display:flex; gap:6px; align-items:center; flex-wrap:wrap;}
@@ -76,8 +71,8 @@
     width:56px; padding:4px 6px; border-radius:6px; border:1px solid var(--border);
     background:var(--panel); color:var(--text); font-size:12px;
   }
-  .clip select{
-    padding:4px 6px; border-radius:6px; border:1px solid var(--border);
+  .clip select, select{
+    padding:6px 8px; border-radius:6px; border:1px solid var(--border);
     background:var(--panel); color:var(--text); font-size:12px;
   }
   .empty-hint{color:var(--muted); font-size:12px; text-align:center; padding:10px;}
@@ -92,86 +87,81 @@
   .track .fill{position:absolute; left:0; top:0; height:100%; background:var(--accent); border-radius:4px; width:0%;}
   .timecodes{display:flex; justify-content:space-between; font-size:11px; color:var(--muted);}
   .status{font-size:12px; color:var(--muted); min-height:16px; margin-top:6px;}
-  .badge{
-    font-size:10px; padding:2px 7px; border-radius:20px; background:var(--border); color:var(--muted); font-weight:700;
-  }
+  .badge{ font-size:10px; padding:2px 7px; border-radius:20px; background:var(--border); color:var(--muted); font-weight:700; }
   .kbRow label{font-size:12px; color:var(--muted); display:flex; align-items:center; gap:6px;}
   input[type=range]{accent-color:var(--accent);}
   audio{width:100%; margin-top:6px;}
+  .pattern-box{
+    background:var(--bg); border:1px solid var(--border); padding:10px; border-radius:10px; margin-top:8px;
+  }
 </style>
 </head>
 <body>
 
 <header>
-  <h1>🎬 AutoClip</h1>
-  <p>Sube imágenes + tu narración, ajusta la línea de tiempo, y exporta un video con zoom y transiciones automáticas.</p>
+  <h1>🎬 AutoClip Studio Pro</h1>
+  <p>Sube imágenes, videos y audios largos (hasta 1 hora). Aplica filtros, efectos y secuencias de movimiento Ken Burns.</p>
 </header>
 
 <div class="wrap">
-  <!-- LEFT: uploads + timeline -->
+  <!-- COLUMNA IZQUIERDA -->
   <div class="col">
     <div class="card">
-      <h2>1. Audio de narración</h2>
-      <div class="dropzone" id="audioDrop">🎙️ Toca para subir tu audio (mp3, wav, m4a...)</div>
+      <h2>1. Narración / Audio (Hasta 1 Hora)</h2>
+      <div class="dropzone" id="audioDrop">🎙️ Haz clic para subir tu audio (mp3, wav, m4a, etc.)</div>
       <input type="file" id="audioInput" accept="audio/*">
       <audio id="audioEl" controls style="display:none;"></audio>
-      <div class="status" id="audioStatus">Sin audio cargado (opcional, puedes exportar solo con imágenes).</div>
+      <div class="status" id="audioStatus">Sin audio cargado. Puedes usar la app solo con video/imágenes.</div>
     </div>
 
     <div class="card">
-      <h2>2. Imágenes</h2>
-      <div class="dropzone" id="imgDrop">🖼️ Toca para subir una o varias imágenes</div>
-      <input type="file" id="imgInput" accept="image/*" multiple>
+      <h2>2. Medios (Imágenes o Videos)</h2>
+      <div class="dropzone" id="imgDrop">🖼️ / 🎥 Sube imágenes o clips de video</div>
+      <input type="file" id="imgInput" accept="image/*,video/*" multiple>
       <div class="row" style="margin-top:10px;">
         <button id="autoDistBtn" class="small">⏱ Repartir tiempo según audio</button>
-        <button id="clearAllBtn" class="small danger">Vaciar todo</button>
+        <button id="clearAllBtn" class="small danger">Vaciar lista</button>
       </div>
     </div>
 
     <div class="card">
-      <h2>3. Sincronizar con tiempos de narración <span class="badge">opcional</span></h2>
-      <p style="font-size:12px;color:var(--muted);margin:0 0 8px;">Pega un tiempo por línea (formato mm:ss o segundos) marcando cuándo empieza cada imagen dentro de tu narración. El texto que escribas después del tiempo es solo referencia y no se mostrará en el video.</p>
-      <textarea id="timesInput" rows="5" placeholder="0:00 Bienvenidos a mi canal&#10;0:05 Hoy les voy a mostrar...&#10;0:12 Primero, empecemos con...&#10;0:20" style="width:100%;resize:vertical;padding:8px;border-radius:8px;border:1px solid var(--border);background:var(--bg);color:var(--text);font-size:12px;font-family:monospace;"></textarea>
+      <h2>3. Sincronización de tiempos <span class="badge">Opcional</span></h2>
+      <p style="font-size:12px;color:var(--muted);margin:0 0 8px;">Pega un tiempo por línea (mm:ss o segundos) para indicar cuándo cambia la imagen o video.</p>
+      <textarea id="timesInput" rows="4" placeholder="0:00 Inicio del tema&#10;0:45 Segundo clip&#10;03:12 Tercera escena" style="width:100%;resize:vertical;padding:8px;border-radius:8px;border:1px solid var(--border);background:var(--bg);color:var(--text);font-size:12px;font-family:monospace;"></textarea>
       <div class="row" style="margin-top:8px;">
-        <span style="font-size:12px;color:var(--muted);">Si no subiste audio, duración total (seg):</span>
-        <input type="number" id="manualTotal" min="1" step="0.5" style="width:70px;padding:4px 6px;border-radius:6px;border:1px solid var(--border);background:var(--panel);color:var(--text);font-size:12px;">
-      </div>
-      <div class="row" style="margin-top:8px;">
-        <button id="applyTimesBtn" class="primary small">✅ Aplicar tiempos a las imágenes</button>
+        <button id="applyTimesBtn" class="primary small">✅ Aplicar tiempos</button>
       </div>
       <div class="status" id="syncStatus"></div>
     </div>
 
     <div class="card">
-      <h2>4. Línea de tiempo <span class="badge" id="clipCount">0 imágenes</span></h2>
+      <h2>4. Línea de tiempo <span class="badge" id="clipCount">0 elementos</span></h2>
       <ul id="clipList"></ul>
-      <div class="empty-hint" id="emptyHint">Aún no has subido imágenes. Arrastra las tarjetas para reordenar, y ajusta duración/zoom/transición de cada una.</div>
+      <div class="empty-hint" id="emptyHint">Aún no has agregado contenido. Sube archivos arriba.</div>
     </div>
   </div>
 
-  <!-- RIGHT: preview + export -->
+  <!-- COLUMNA DERECHA -->
   <div class="col">
     <div class="card">
-      <h2>Formato y calidad</h2>
+      <h2>Formato y Calidad</h2>
       <div class="row">
         <select id="aspectSelect">
           <option value="16:9">16:9 — Horizontal (YouTube)</option>
           <option value="9:16">9:16 — Vertical (Reels/TikTok/Shorts)</option>
-          <option value="1:1">1:1 — Cuadrado (Instagram feed)</option>
-          <option value="4:3">4:3 — Clásico horizontal</option>
-          <option value="3:4">3:4 — Vertical clásico</option>
+          <option value="1:1">1:1 — Cuadrado (Instagram)</option>
+          <option value="4:3">4:3 — Clásico</option>
         </select>
         <select id="qualitySelect">
-          <option value="720p">720p (HD)</option>
+          <option value="720p">720p (Rápido)</option>
           <option value="1080p" selected>1080p (Full HD)</option>
           <option value="4k">4K (Ultra HD)</option>
         </select>
       </div>
-      <div class="status">4K se ve mejor pero tarda más en grabar y pesa más el archivo final.</div>
     </div>
 
     <div class="card">
-      <h2>Vista previa</h2>
+      <h2>Vista Previa</h2>
       <div class="previewBox" id="previewBox"><canvas id="canvas" width="1920" height="1080"></canvas></div>
       <div class="playbar">
         <div class="track" id="track"><div class="fill" id="trackFill"></div></div>
@@ -183,69 +173,103 @@
       </div>
     </div>
 
+    <!-- PATRÓN DE MOVIMIENTOS INTERCALADOS (HASTA 3) -->
     <div class="card">
-      <h2>Zoom / movimiento de cámara</h2>
+      <h2>Movimiento Ken Burns / Animación</h2>
       <div class="kbRow">
-        <label style="margin-top:0;">Intensidad
+        <label>Intensidad del zoom
           <input type="range" id="kbIntensity" min="0.05" max="0.4" step="0.05" value="0.18" style="flex:1;">
         </label>
       </div>
-      <div class="row" style="margin-top:10px;">
-        <select id="bulkZoomStyle">
-          <option value="random">🎲 Aleatorio</option>
-          <option value="in">🔍+ Acercar (zoom in)</option>
-          <option value="out">🔍- Alejar (zoom out)</option>
-          <option value="pan-lr">➡ Paneo hacia la derecha</option>
-          <option value="pan-rl">⬅ Paneo hacia la izquierda</option>
-          <option value="pan-du">⬇ Paneo hacia abajo</option>
-          <option value="pan-ud">⬆ Paneo hacia arriba</option>
-          <option value="static">⏹ Estático (sin zoom)</option>
-        </select>
-        <button id="bulkApplyZoomBtn" class="small">Aplicar a todas las imágenes</button>
+      
+      <div class="pattern-box">
+        <p style="font-size:12px;margin:0 0 6px;font-weight:600;">Secuencia de hasta 3 movimientos (se repiten en ciclo):</p>
+        <div class="row" style="gap:4px;margin-bottom:8px;">
+          <select id="mov1" style="flex:1;">
+            <option value="in">1. 🔍+ Zoom In</option>
+            <option value="out">1. 🔍- Zoom Out</option>
+            <option value="pan-lr" selected>1. ➡ Paneo Derecha</option>
+            <option value="pan-rl">1. ⬅ Paneo Izquierda</option>
+            <option value="static">1. ⏹ Estático</option>
+          </select>
+          <select id="mov2" style="flex:1;">
+            <option value="in" selected>2. 🔍+ Zoom In</option>
+            <option value="out">2. 🔍- Zoom Out</option>
+            <option value="pan-lr">2. ➡ Paneo Derecha</option>
+            <option value="pan-rl">2. ⬅ Paneo Izquierda</option>
+            <option value="static">2. ⏹ Estático</option>
+          </select>
+          <select id="mov3" style="flex:1;">
+            <option value="in">3. 🔍+ Zoom In</option>
+            <option value="out" selected>3. 🔍- Zoom Out</option>
+            <option value="pan-lr">3. ➡ Paneo Derecha</option>
+            <option value="pan-du">3. ⬇ Paneo Abajo</option>
+            <option value="static">3. ⏹ Estático</option>
+          </select>
+        </div>
+        <button id="applyPatternBtn" class="small primary" style="width:100%;">🔄 Aplicar patrón de 3 movimientos a todo el video</button>
       </div>
     </div>
 
+    <!-- FILTROS GLOBALES -->
     <div class="card">
-      <h2>Stickers <span class="badge">Suscríbete, Comparte...</span></h2>
+      <h2>Filtro de Color</h2>
+      <div class="row">
+        <select id="globalFilterSelect" style="flex:1;">
+          <option value="none">🎨 Sin filtro / Original</option>
+          <option value="vivid">✨ Vívido y Contrastado</option>
+          <option value="warm">🔥 Cálido / Atardecer</option>
+          <option value="cool">❄️ Frío / Cinematográfico</option>
+          <option value="vintage">📼 Vintage / Retro</option>
+          <option value="bw">⚫ Blanco y Negro</option>
+          <option value="sepia">🟤 Sepia Clásico</option>
+        </select>
+        <button id="applyGlobalFilterBtn" class="small">Aplicar a todas las escenas</button>
+      </div>
+    </div>
+
+    <!-- EFECTOS ESPECIALES SUPERPUESTOS -->
+    <div class="card">
+      <h2>Efectos Mágicos y Capas</h2>
+      <div class="row">
+        <select id="overlayEffectSelect" style="flex:1;">
+          <option value="none">🚫 Sin efecto superpuesto</option>
+          <option value="sparks">✨ Chispas mágicas / Destellos</option>
+          <option value="snow">❄️ Polvo atmosférico / Nieve</option>
+          <option value="neon">🚨 Marco Neón pulsante</option>
+          <option value="vhs">📼 Artefactos Glitch / VHS</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- STICKERS -->
+    <div class="card">
+      <h2>Stickers y Mensajes</h2>
       <div class="row">
         <select id="stickerType">
           <option value="subscribe">🔔 Suscríbete</option>
-          <option value="share">📤 Comparte</option>
-          <option value="comment">💬 Comenta</option>
-          <option value="follow">➕ Sígueme</option>
           <option value="like">❤️ Dale Like</option>
-          <option value="custom">✏️ Texto personalizado</option>
+          <option value="share">📤 Comparte</option>
+          <option value="custom">✏️ Texto Personalizado</option>
         </select>
-      </div>
-      <div class="row" style="margin-top:8px;" id="customTextRow">
-        <input type="text" id="stickerCustomText" placeholder="Texto del sticker" style="flex:1;padding:6px 8px;border-radius:6px;border:1px solid var(--border);background:var(--bg);color:var(--text);font-size:12px;">
+        <input type="text" id="stickerCustomText" placeholder="Tu texto aquí" style="display:none;flex:1;padding:6px 8px;border-radius:6px;border:1px solid var(--border);background:var(--bg);color:var(--text);font-size:12px;">
       </div>
       <div class="row" style="margin-top:8px;">
-        <select id="stickerPosition">
-          <option value="top-left">↖ Arriba izquierda</option>
-          <option value="top-right">↗ Arriba derecha</option>
-          <option value="bottom-left">↙ Abajo izquierda</option>
-          <option value="bottom-right" selected>↘ Abajo derecha</option>
+        <select id="stickerPosition" style="flex:1;">
+          <option value="bottom-right" selected>↘ Abajo Derecha</option>
+          <option value="bottom-left">↙ Abajo Izquierda</option>
+          <option value="top-right">↗ Arriba Derecha</option>
           <option value="center">⏺ Centro</option>
         </select>
-      </div>
-      <div class="row" style="margin-top:8px;">
-        <span style="font-size:12px;color:var(--muted);">Desde (seg)</span>
-        <input type="number" id="stickerStart" min="0" step="0.5" value="0" style="width:64px;padding:4px 6px;border-radius:6px;border:1px solid var(--border);background:var(--panel);color:var(--text);font-size:12px;">
-        <span style="font-size:12px;color:var(--muted);">Hasta (seg)</span>
-        <input type="number" id="stickerEnd" min="0" step="0.5" style="width:64px;padding:4px 6px;border-radius:6px;border:1px solid var(--border);background:var(--panel);color:var(--text);font-size:12px;">
-      </div>
-      <div class="row" style="margin-top:8px;">
-        <button id="addStickerBtn" class="primary small">➕ Agregar sticker</button>
+        <button id="addStickerBtn" class="primary small">➕ Agregar</button>
       </div>
       <ul id="stickerList" style="list-style:none;margin:10px 0 0;padding:0;display:flex;flex-direction:column;gap:6px;"></ul>
     </div>
 
+    <!-- EXPORTACIÓN -->
     <div class="card">
-      <h2>Exportar</h2>
-      <div class="row">
-        <button id="exportBtn" class="primary">⬇ Generar y descargar video</button>
-      </div>
+      <h2>Exportación de Video</h2>
+      <button id="exportBtn" class="primary" style="width:100%;padding:12px;">⬇ Generar y Descargar Video Completo</button>
       <div class="status" id="exportStatus"></div>
     </div>
   </div>
@@ -271,48 +295,31 @@
   const timeNow = document.getElementById('timeNow');
   const timeTotal = document.getElementById('timeTotal');
   const kbIntensity = document.getElementById('kbIntensity');
-  const bulkZoomStyle = document.getElementById('bulkZoomStyle');
-  const bulkApplyZoomBtn = document.getElementById('bulkApplyZoomBtn');
-  const timesInput = document.getElementById('timesInput');
-  const manualTotal = document.getElementById('manualTotal');
-  const applyTimesBtn = document.getElementById('applyTimesBtn');
-  const syncStatus = document.getElementById('syncStatus');
-  const exportBtn = document.getElementById('exportBtn');
-  const exportStatus = document.getElementById('exportStatus');
-  const autoDistBtn = document.getElementById('autoDistBtn');
-  const clearAllBtn = document.getElementById('clearAllBtn');
   const aspectSelect = document.getElementById('aspectSelect');
   const qualitySelect = document.getElementById('qualitySelect');
   const previewBox = document.getElementById('previewBox');
+  const autoDistBtn = document.getElementById('autoDistBtn');
+  const clearAllBtn = document.getElementById('clearAllBtn');
+  const applyTimesBtn = document.getElementById('applyTimesBtn');
+  const timesInput = document.getElementById('timesInput');
+  const syncStatus = document.getElementById('syncStatus');
+  const exportBtn = document.getElementById('exportBtn');
+  const exportStatus = document.getElementById('exportStatus');
+
+  const mov1 = document.getElementById('mov1');
+  const mov2 = document.getElementById('mov2');
+  const mov3 = document.getElementById('mov3');
+  const applyPatternBtn = document.getElementById('applyPatternBtn');
+  const globalFilterSelect = document.getElementById('globalFilterSelect');
+  const applyGlobalFilterBtn = document.getElementById('applyGlobalFilterBtn');
+  const overlayEffectSelect = document.getElementById('overlayEffectSelect');
+
   const stickerType = document.getElementById('stickerType');
   const stickerCustomText = document.getElementById('stickerCustomText');
-  const customTextRow = document.getElementById('customTextRow');
   const stickerPosition = document.getElementById('stickerPosition');
-  const stickerStart = document.getElementById('stickerStart');
-  const stickerEnd = document.getElementById('stickerEnd');
   const addStickerBtn = document.getElementById('addStickerBtn');
   const stickerList = document.getElementById('stickerList');
 
-  const ZOOM_STYLES = [
-    ['random','🎲 Aleatorio'],
-    ['in','🔍+ Acercar'],
-    ['out','🔍- Alejar'],
-    ['pan-lr','➡ Paneo derecha'],
-    ['pan-rl','⬅ Paneo izquierda'],
-    ['pan-du','⬇ Paneo abajo'],
-    ['pan-ud','⬆ Paneo arriba'],
-    ['static','⏹ Estático']
-  ];
-
-  const FILTER_STYLES = [
-    ['none','🎨 Sin filtro'],
-    ['bw','⚫ Blanco y negro'],
-    ['sepia','🟤 Sepia'],
-    ['vintage','📼 Vintage'],
-    ['cool','❄️ Frío'],
-    ['warm','🔥 Cálido'],
-    ['vivid','✨ Vívido']
-  ];
   const FILTER_CSS = {
     none: 'none',
     bw: 'grayscale(1)',
@@ -327,16 +334,7 @@
     '16:9': {'720p':[1280,720], '1080p':[1920,1080], '4k':[3840,2160]},
     '9:16': {'720p':[720,1280], '1080p':[1080,1920], '4k':[2160,3840]},
     '1:1':  {'720p':[720,720],  '1080p':[1080,1080], '4k':[2160,2160]},
-    '4:3':  {'720p':[960,720],  '1080p':[1440,1080], '4k':[2880,2160]},
-    '3:4':  {'720p':[720,960],  '1080p':[1080,1440], '4k':[2160,2880]}
-  };
-
-  const STICKER_PRESETS = {
-    subscribe: '🔔 Suscríbete',
-    share: '📤 Comparte',
-    comment: '💬 Comenta',
-    follow: '➕ Sígueme',
-    like: '❤️ Dale Like'
+    '4:3':  {'720p':[960,720],  '1080p':[1440,1080], '4k':[2880,2160]}
   };
 
   let stickers = [];
@@ -349,31 +347,24 @@
   let dragSrcIndex = null;
   const TRANSITION_DUR = 0.6;
 
+  // Partículas para efectos mágicos
+  const particles = Array.from({length:40}, ()=>({
+    x: Math.random(), y: Math.random(),
+    speed: 0.002 + Math.random()*0.005,
+    size: 2 + Math.random()*4
+  }));
+
   function uid(){ return Math.random().toString(36).slice(2,9); }
-  function randRange(a,b){ return a + Math.random()*(b-a); }
 
   function buildKB(style, intensity){
     intensity = intensity || 0.18;
     switch(style){
-      case 'in':
-        return {s0:1, s1:1+intensity*1.6, x0:0.5, y0:0.5, x1:0.5, y1:0.5};
-      case 'out':
-        return {s0:1+intensity*1.6, s1:1, x0:0.5, y0:0.5, x1:0.5, y1:0.5};
-      case 'pan-lr': { const s=1+intensity*1.3; return {s0:s, s1:s, x0:0.15, y0:0.5, x1:0.85, y1:0.5}; }
-      case 'pan-rl': { const s=1+intensity*1.3; return {s0:s, s1:s, x0:0.85, y0:0.5, x1:0.15, y1:0.5}; }
-      case 'pan-du': { const s=1+intensity*1.3; return {s0:s, s1:s, x0:0.5, y0:0.15, x1:0.5, y1:0.85}; }
-      case 'pan-ud': { const s=1+intensity*1.3; return {s0:s, s1:s, x0:0.5, y0:0.85, x1:0.5, y1:0.15}; }
-      case 'static':
-        return {s0:1, s1:1, x0:0.5, y0:0.5, x1:0.5, y1:0.5};
-      case 'random':
-      default: {
-        const zoomIn = Math.random() > 0.5;
-        const s0 = zoomIn ? 1.0 : 1.0 + intensity*1.6;
-        const s1 = zoomIn ? 1.0 + intensity*1.6 : 1.0;
-        const cx0 = randRange(0.3,0.7), cy0 = randRange(0.3,0.7);
-        const cx1 = randRange(0.3,0.7), cy1 = randRange(0.3,0.7);
-        return {s0, s1, x0:cx0, y0:cy0, x1:cx1, y1:cy1};
-      }
+      case 'in': return {s0:1, s1:1+intensity*1.6, x0:0.5, y0:0.5, x1:0.5, y1:0.5};
+      case 'out': return {s0:1+intensity*1.6, s1:1, x0:0.5, y0:0.5, x1:0.5, y1:0.5};
+      case 'pan-lr': return {s0:1+intensity, s1:1+intensity, x0:0.2, y0:0.5, x1:0.8, y1:0.5};
+      case 'pan-rl': return {s0:1+intensity, s1:1+intensity, x0:0.8, y0:0.5, x1:0.2, y1:0.5};
+      case 'pan-du': return {s0:1+intensity, s1:1+intensity, x0:0.5, y0:0.2, x1:0.5, y1:0.8};
+      case 'static': default: return {s0:1, s1:1, x0:0.5, y0:0.5, x1:0.5, y1:0.5};
     }
   }
 
@@ -395,81 +386,7 @@
   aspectSelect.addEventListener('change', applyCanvasSize);
   qualitySelect.addEventListener('change', applyCanvasSize);
 
-  // ---------- Stickers ----------
-  stickerType.addEventListener('change', ()=>{
-    customTextRow.style.display = stickerType.value==='custom' ? 'flex' : 'none';
-  });
-  customTextRow.style.display = 'none';
-
-  function renderStickerList(){
-    stickerList.innerHTML = '';
-    stickers.forEach((s, idx)=>{
-      const li = document.createElement('li');
-      li.style.cssText = 'display:flex;align-items:center;gap:8px;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:6px 8px;font-size:12px;';
-      const label = document.createElement('span');
-      label.style.flex = '1';
-      label.textContent = s.text + ' · ' + s.position + ' · ' + fmt(s.start) + '–' + (s.end!==null ? fmt(s.end) : 'fin');
-      li.appendChild(label);
-      const rm = document.createElement('button');
-      rm.className = 'small danger'; rm.textContent = '✕';
-      rm.addEventListener('click', ()=>{ stickers.splice(idx,1); renderStickerList(); if(!playing) drawFrame(0); });
-      li.appendChild(rm);
-      stickerList.appendChild(li);
-    });
-  }
-
-  addStickerBtn.addEventListener('click', ()=>{
-    const type = stickerType.value;
-    const text = type==='custom' ? (stickerCustomText.value.trim() || 'Texto') : STICKER_PRESETS[type];
-    const start = Math.max(0, parseFloat(stickerStart.value)||0);
-    const endRaw = stickerEnd.value;
-    const end = endRaw==='' ? null : Math.max(start+0.1, parseFloat(endRaw));
-    stickers.push({id: uid(), text, position: stickerPosition.value, start, end});
-    renderStickerList();
-    if(!playing) drawFrame(start);
-  });
-
-  function drawStickers(t){
-    stickers.forEach(s=>{
-      const active = t >= s.start && (s.end===null || t <= s.end);
-      if(!active) return;
-      const pad = canvas.width*0.02;
-      ctx.font = 'bold ' + Math.round(canvas.width*0.03) + 'px -apple-system, sans-serif';
-      const textW = ctx.measureText(s.text).width;
-      const boxW = textW + pad*2;
-      const boxH = canvas.width*0.06;
-      let bx, by;
-      if(s.position==='top-left'){ bx=pad; by=pad; }
-      else if(s.position==='top-right'){ bx=canvas.width-boxW-pad; by=pad; }
-      else if(s.position==='bottom-left'){ bx=pad; by=canvas.height-boxH-pad; }
-      else if(s.position==='bottom-right'){ bx=canvas.width-boxW-pad; by=canvas.height-boxH-pad; }
-      else { bx=(canvas.width-boxW)/2; by=(canvas.height-boxH)/2; }
-      const pulse = 1 + Math.sin(t*4)*0.03;
-      ctx.save();
-      ctx.translate(bx+boxW/2, by+boxH/2);
-      ctx.scale(pulse, pulse);
-      ctx.translate(-(bx+boxW/2), -(by+boxH/2));
-      ctx.fillStyle = 'rgba(124,92,255,0.92)';
-      roundRect(ctx, bx, by, boxW, boxH, boxH/2);
-      ctx.fill();
-      ctx.fillStyle = '#fff';
-      ctx.textBaseline = 'middle';
-      ctx.fillText(s.text, bx+pad, by+boxH/2+1);
-      ctx.restore();
-    });
-  }
-
-  function roundRect(ctx,x,y,w,h,r){
-    ctx.beginPath();
-    ctx.moveTo(x+r,y);
-    ctx.arcTo(x+w,y,x+w,y+h,r);
-    ctx.arcTo(x+w,y+h,x,y+h,r);
-    ctx.arcTo(x,y+h,x,y,r);
-    ctx.arcTo(x,y,x+w,y,r);
-    ctx.closePath();
-  }
-
-  // ---------- Audio upload ----------
+  // Carga de Audio
   audioDrop.addEventListener('click', ()=> audioInput.click());
   audioInput.addEventListener('change', e=>{
     const f = e.target.files[0];
@@ -480,68 +397,75 @@
     audioEl.onloadedmetadata = ()=>{
       audioLoaded = true;
       audioDuration = audioEl.duration;
-      audioStatus.textContent = '✅ ' + f.name + ' — ' + fmt(audioDuration) + ' de duración';
+      audioStatus.textContent = '✅ Audio cargado: ' + f.name + ' (' + fmt(audioDuration) + ')';
       updateTotals();
     };
   });
 
-  // ---------- Image upload ----------
+  // Carga de Imágenes y Videos
   imgDrop.addEventListener('click', ()=> imgInput.click());
   imgInput.addEventListener('change', e=>{
     const files = Array.from(e.target.files);
     files.forEach(f=>{
       const url = URL.createObjectURL(f);
-      const img = new Image();
-      img.onload = ()=>{
-        clips.push({
-          id: uid(), name: f.name, img, url,
-          duration: 3,
-          kbStyle: 'random',
-          kb: buildKB('random', parseFloat(kbIntensity.value)),
-          transitionOut: 'fade',
-          filter: 'none',
-          subtitle: ''
-        });
-        renderClipList();
-      };
-      img.src = url;
+      const isVideo = f.type.startsWith('video/');
+      if(isVideo){
+        const video = document.createElement('video');
+        video.src = url;
+        video.muted = true;
+        video.playsInline = true;
+        video.onloadedmetadata = ()=>{
+          clips.push({
+            id: uid(), name: f.name, type:'video', video, url,
+            duration: video.duration || 5,
+            kbStyle: 'static', kb: buildKB('static'),
+            transitionOut: 'fade', filter: 'none'
+          });
+          renderClipList();
+        };
+      } else {
+        const img = new Image();
+        img.onload = ()=>{
+          clips.push({
+            id: uid(), name: f.name, type:'image', img, url,
+            duration: 3,
+            kbStyle: 'in', kb: buildKB('in', parseFloat(kbIntensity.value)),
+            transitionOut: 'fade', filter: 'none'
+          });
+          renderClipList();
+        };
+        img.src = url;
+      }
     });
     imgInput.value = '';
   });
 
+  // Renderizado de la lista
   function renderClipList(){
     clipList.innerHTML = '';
     emptyHint.style.display = clips.length ? 'none' : 'block';
-    clipCount.textContent = clips.length + (clips.length===1?' imagen':' imágenes');
+    clipCount.textContent = clips.length + (clips.length===1?' elemento':' elementos');
     clips.forEach((c, idx)=>{
       const li = document.createElement('li');
       li.className = 'clip';
       li.draggable = true;
-      li.dataset.idx = idx;
 
-      const thumb = document.createElement('img');
-      thumb.src = c.url;
-      li.appendChild(thumb);
+      const media = c.type==='video' ? document.createElement('video') : document.createElement('img');
+      media.src = c.url; media.className = 'media-preview';
+      li.appendChild(media);
 
       const meta = document.createElement('div');
       meta.className = 'meta';
-
       const name = document.createElement('div');
       name.className = 'name';
-      name.textContent = (idx+1) + '. ' + c.name;
+      name.textContent = (idx+1) + '. ' + (c.type==='video'?'🎥 ':'🖼️ ') + c.name;
       meta.appendChild(name);
 
       const line = document.createElement('div');
       line.className = 'controls-line';
 
-      const durLabel = document.createElement('span');
-      durLabel.style.fontSize='11px'; durLabel.style.color='var(--muted)';
-      durLabel.textContent = 'seg:';
-      line.appendChild(durLabel);
-
       const durInput = document.createElement('input');
-      durInput.type = 'number'; durInput.min = '0.3'; durInput.step = '0.1';
-      durInput.value = c.duration;
+      durInput.type = 'number'; durInput.min = '0.3'; durInput.step = '0.1'; durInput.value = c.duration;
       durInput.addEventListener('input', ()=>{
         c.duration = Math.max(0.3, parseFloat(durInput.value)||3);
         updateTotals();
@@ -549,188 +473,85 @@
       line.appendChild(durInput);
 
       const transSel = document.createElement('select');
-      [['fade','➜ Fundido'],['slide','➜ Deslizar'],['zoom','➜ Zoom'],['wipe','➜ Barrido'],['cut','➜ Corte']].forEach(([t,label])=>{
-        const opt = document.createElement('option');
-        opt.value = t; opt.textContent = label;
+      [['fade','Fundido'],['slide','Deslizar'],['zoom','Zoom'],['cut','Corte']].forEach(([t,label])=>{
+        const opt = document.createElement('option'); opt.value = t; opt.textContent = label;
         if(c.transitionOut===t) opt.selected = true;
         transSel.appendChild(opt);
       });
       transSel.addEventListener('change', ()=>{ c.transitionOut = transSel.value; });
       line.appendChild(transSel);
 
-      const zoomSel = document.createElement('select');
-      ZOOM_STYLES.forEach(([val,label])=>{
-        const opt = document.createElement('option');
-        opt.value = val; opt.textContent = label;
-        if((c.kbStyle||'random')===val) opt.selected = true;
-        zoomSel.appendChild(opt);
-      });
-      zoomSel.addEventListener('change', ()=>{
-        c.kbStyle = zoomSel.value;
-        c.kb = buildKB(c.kbStyle, parseFloat(kbIntensity.value));
-      });
-      line.appendChild(zoomSel);
-
-      const filterSel = document.createElement('select');
-      FILTER_STYLES.forEach(([val,label])=>{
-        const opt = document.createElement('option');
-        opt.value = val; opt.textContent = label;
-        if((c.filter||'none')===val) opt.selected = true;
-        filterSel.appendChild(opt);
-      });
-      filterSel.addEventListener('change', ()=>{ c.filter = filterSel.value; if(!playing) drawFrame(0); });
-      line.appendChild(filterSel);
-
-      meta.appendChild(line);
-
-      const upBtn = document.createElement('button');
-      upBtn.className='small'; upBtn.textContent='↑';
-      upBtn.disabled = idx===0;
-      upBtn.addEventListener('click', ()=>{ moveClip(idx, idx-1); });
-      line.appendChild(upBtn);
-
-      const downBtn = document.createElement('button');
-      downBtn.className='small'; downBtn.textContent='↓';
-      downBtn.disabled = idx===clips.length-1;
-      downBtn.addEventListener('click', ()=>{ moveClip(idx, idx+1); });
-      line.appendChild(downBtn);
-
       const delBtn = document.createElement('button');
       delBtn.className='small danger'; delBtn.textContent='✕';
       delBtn.addEventListener('click', ()=>{ clips.splice(idx,1); renderClipList(); updateTotals(); });
       line.appendChild(delBtn);
 
+      meta.appendChild(line);
       li.appendChild(meta);
       clipList.appendChild(li);
-
-      li.addEventListener('dragstart', ()=>{ dragSrcIndex = idx; li.classList.add('dragging'); });
-      li.addEventListener('dragend', ()=>{ li.classList.remove('dragging'); });
-      li.addEventListener('dragover', e=> e.preventDefault());
-      li.addEventListener('drop', e=>{
-        e.preventDefault();
-        if(dragSrcIndex===null || dragSrcIndex===idx) return;
-        moveClip(dragSrcIndex, idx);
-      });
     });
     updateTotals();
     if(!playing) drawFrame(0);
   }
 
-  function moveClip(from,to){
-    const item = clips.splice(from,1)[0];
-    clips.splice(to,0,item);
-    renderClipList();
-  }
-
-  autoDistBtn.addEventListener('click', ()=>{
+  // Aplicar Patrón de hasta 3 movimientos
+  applyPatternBtn.addEventListener('click', ()=>{
     if(!clips.length) return;
-    const dur = audioLoaded ? audioDuration : totalClipsDuration() || clips.length*3;
-    const each = Math.max(0.3, dur / clips.length);
-    clips.forEach(c=> c.duration = Math.round(each*10)/10);
-    renderClipList();
-  });
-
-  kbIntensity.addEventListener('input', ()=>{
-    clips.forEach(c=>{ c.kb = buildKB(c.kbStyle||'random', parseFloat(kbIntensity.value)); });
-    if(!playing) drawFrame(0);
-  });
-
-  bulkApplyZoomBtn.addEventListener('click', ()=>{
-    const style = bulkZoomStyle.value;
-    clips.forEach(c=>{ c.kbStyle = style; c.kb = buildKB(style, parseFloat(kbIntensity.value)); });
-    renderClipList();
-  });
-
-  function parseTimes(text){
-    return text.split('\n').map(l=>l.trim()).filter(Boolean).map(line=>{
-      const m = line.match(/^(\d{1,3}:\d{2}(?:\.\d+)?|\d+(?:\.\d+)?)\s*[-–:]?\s*(.*)$/);
-      if(!m) return null;
-      const token = m[1];
-      const label = (m[2]||'').trim();
-      let time;
-      if(token.includes(':')){
-        const parts = token.split(':');
-        time = parseInt(parts[0],10)*60 + parseFloat(parts[1]);
-      } else {
-        time = parseFloat(token);
+    const pattern = [mov1.value, mov2.value, mov3.value];
+    clips.forEach((c, idx)=>{
+      if(c.type==='image'){
+        const selectedMov = pattern[idx % 3];
+        c.kbStyle = selectedMov;
+        c.kb = buildKB(selectedMov, parseFloat(kbIntensity.value));
       }
-      if(isNaN(time)) return null;
-      return {time, text: label};
-    }).filter(v=> v!==null);
-  }
-
-  applyTimesBtn.addEventListener('click', ()=>{
-    if(!clips.length){ syncStatus.textContent = 'Agrega imágenes primero.'; return; }
-    const parsed = parseTimes(timesInput.value).sort((a,b)=>a.time-b.time);
-    if(parsed.length < 1){ syncStatus.textContent = 'No se detectaron tiempos válidos. Usa formato mm:ss o segundos, uno por línea.'; return; }
-    const times = parsed.map(p=>p.time);
-
-    const n = Math.min(times.length, clips.length);
-    for(let i=0;i<n-1;i++){
-      clips[i].duration = Math.max(0.3, times[i+1]-times[i]);
-    }
-    const lastIdx = n-1;
-    let endTime;
-    if(audioLoaded){
-      endTime = audioDuration;
-    } else if(manualTotal.value){
-      endTime = parseFloat(manualTotal.value);
-    } else {
-      endTime = times[lastIdx] + (clips[lastIdx].duration || 3);
-    }
-    clips[lastIdx].duration = Math.max(0.3, endTime - times[lastIdx]);
-
-    if(times.length !== clips.length){
-      syncStatus.textContent = '⚠️ Se detectaron ' + times.length + ' tiempo(s) y hay ' + clips.length + ' imagen(es) — se ajustaron ' + n + '.';
-    } else {
-      syncStatus.textContent = '✅ Duraciones ajustadas según tu narración.';
-    }
+    });
     renderClipList();
+    alert('✅ Patrón de 3 movimientos aplicado a todas las imágenes.');
   });
 
-  clearAllBtn.addEventListener('click', ()=>{
-    clips = [];
-    audioEl.src=''; audioEl.style.display='none'; audioLoaded=false; audioDuration=0;
-    audioStatus.textContent = 'Sin audio cargado (opcional, puedes exportar solo con imágenes).';
-    renderClipList(); updateTotals();
+  // Filtro Global
+  applyGlobalFilterBtn.addEventListener('click', ()=>{
+    const filter = globalFilterSelect.value;
+    clips.forEach(c=> c.filter = filter);
+    if(!playing) drawFrame(0);
+    alert('✅ Filtro de color aplicado a todo el video.');
   });
 
-  function updateTotals(){ timeTotal.textContent = fmt(totalDuration()); }
+  // Dibujado de Frames
+  function drawClipFrame(clip, localT, dx, dy, alpha){
+    const isVid = clip.type === 'video';
+    const media = isVid ? clip.video : clip.img;
+    if(!media) return;
 
-  // ---------- Drawing ----------
-  function computeKBFrame(clip, localT){
-    const kb = clip.kb;
-    const scale = kb.s0 + (kb.s1-kb.s0)*localT;
-    const cx = kb.x0 + (kb.x1-kb.x0)*localT;
-    const cy = kb.y0 + (kb.y1-kb.y0)*localT;
-    return {scale, cx, cy};
-  }
+    if(isVid && playing){
+      const vidTime = localT * clip.duration;
+      if(Math.abs(media.currentTime - vidTime) > 0.3) media.currentTime = vidTime;
+    }
 
-  function drawClipFrame(clip, localT, dx, dy, alpha, drawW, drawH, extraScale){
-    const img = clip.img;
-    const {scale, cx, cy} = computeKBFrame(clip, localT);
-    const cw = drawW===undefined?canvas.width:drawW;
-    const ch = drawH===undefined?canvas.height:drawH;
+    const scale = clip.kb.s0 + (clip.kb.s1 - clip.kb.s0)*localT;
+    const cx = clip.kb.x0 + (clip.kb.x1 - clip.kb.x0)*localT;
+    const cy = clip.kb.y0 + (clip.kb.y1 - clip.kb.y0)*localT;
+
+    const cw = canvas.width, ch = canvas.height;
     const canvasAspect = cw/ch;
-    const imgAspect = img.width/img.height;
+    const mediaW = isVid ? media.videoWidth||16 : media.width;
+    const mediaH = isVid ? media.videoHeight||9 : media.height;
+    const mediaAspect = mediaW/mediaH;
+
     let baseW, baseH;
-    if(imgAspect > canvasAspect){ baseH = img.height; baseW = img.height*canvasAspect; }
-    else { baseW = img.width; baseH = img.width/canvasAspect; }
+    if(mediaAspect > canvasAspect){ baseH = mediaH; baseW = mediaH*canvasAspect; }
+    else { baseW = mediaW; baseH = mediaW/canvasAspect; }
+
     const cropW = baseW/scale, cropH = baseH/scale;
-    let sx = cx*img.width - cropW/2;
-    let sy = cy*img.height - cropH/2;
-    sx = Math.max(0, Math.min(img.width-cropW, sx));
-    sy = Math.max(0, Math.min(img.height-cropH, sy));
+    let sx = cx*mediaW - cropW/2;
+    let sy = cy*mediaH - cropH/2;
+    sx = Math.max(0, Math.min(mediaW-cropW, sx));
+    sy = Math.max(0, Math.min(mediaH-cropH, sy));
+
     ctx.save();
     ctx.globalAlpha = alpha;
     ctx.filter = FILTER_CSS[clip.filter] || 'none';
-    if(extraScale && extraScale!==1){
-      const ecx = dx+cw/2, ecy = dy+ch/2;
-      ctx.translate(ecx, ecy);
-      ctx.scale(extraScale, extraScale);
-      ctx.translate(-ecx, -ecy);
-    }
-    ctx.drawImage(img, sx, sy, cropW, cropH, dx, dy, cw, ch);
+    ctx.drawImage(media, sx, sy, cropW, cropH, dx, dy, cw, ch);
     ctx.filter = 'none';
     ctx.restore();
   }
@@ -745,192 +566,182 @@
     return {index:0, segStart:0, localT:0};
   }
 
+  function drawOverlayEffects(t){
+    const effect = overlayEffectSelect.value;
+    if(effect==='none') return;
+
+    if(effect==='sparks' || effect==='snow'){
+      ctx.save();
+      ctx.fillStyle = effect==='sparks' ? '#ffdf6d' : '#ffffff';
+      particles.forEach(p=>{
+        p.y += p.speed; if(p.y > 1) p.y = 0;
+        ctx.beginPath();
+        ctx.arc(p.x*canvas.width, p.y*canvas.height, p.size, 0, Math.PI*2);
+        ctx.fill();
+      });
+      ctx.restore();
+    } else if(effect==='neon'){
+      ctx.save();
+      ctx.strokeStyle = `hsl(${(t*100)%360}, 100%, 50%)`;
+      ctx.lineWidth = 14;
+      ctx.strokeRect(0,0,canvas.width,canvas.height);
+      ctx.restore();
+    } else if(effect==='vhs'){
+      ctx.save();
+      ctx.fillStyle = 'rgba(255,255,255,0.05)';
+      ctx.fillRect(0, Math.random()*canvas.height, canvas.width, 4);
+      ctx.restore();
+    }
+  }
+
   function drawFrame(t){
-    ctx.fillStyle = '#000';
-    ctx.fillRect(0,0,canvas.width,canvas.height);
+    ctx.fillStyle = '#000'; ctx.fillRect(0,0,canvas.width,canvas.height);
     if(!clips.length) return;
+
     const {index, segStart, localT} = findSegment(t);
     const clip = clips[index];
     const prev = index>0 ? clips[index-1] : null;
-    const inTransWindow = prev && prev.transitionOut!=='cut' && (t-segStart) < TRANSITION_DUR;
+    const inTrans = prev && (t-segStart) < TRANSITION_DUR;
 
-    if(inTransWindow){
-      const alpha = Math.min(1, (t-segStart)/TRANSITION_DUR);
-      if(prev.transitionOut === 'fade'){
-        drawClipFrame(prev, 1, 0, 0, 1);
-        drawClipFrame(clip, localT, 0, 0, alpha);
-      } else if(prev.transitionOut === 'slide'){
-        drawClipFrame(prev, 1, 0, 0, 1);
-        const offset = canvas.width * (1-alpha);
-        drawClipFrame(clip, localT, offset, 0, 1);
-      } else if(prev.transitionOut === 'zoom'){
-        drawClipFrame(prev, 1, 0, 0, 1);
-        const extraScale = 1.25 - 0.25*alpha;
-        drawClipFrame(clip, localT, 0, 0, alpha, undefined, undefined, extraScale);
-      } else if(prev.transitionOut === 'wipe'){
-        drawClipFrame(prev, 1, 0, 0, 1);
-        ctx.save();
-        ctx.beginPath();
-        ctx.rect(0, 0, canvas.width*alpha, canvas.height);
-        ctx.clip();
-        drawClipFrame(clip, localT, 0, 0, 1);
-        ctx.restore();
-      } else {
-        drawClipFrame(clip, localT, 0, 0, 1);
-      }
+    if(inTrans){
+      const alpha = (t-segStart)/TRANSITION_DUR;
+      drawClipFrame(prev, 1, 0, 0, 1);
+      drawClipFrame(clip, localT, 0, 0, alpha);
     } else {
       drawClipFrame(clip, localT, 0, 0, 1);
     }
 
+    drawOverlayEffects(t);
     drawStickers(t);
   }
 
-  // ---------- Playback ----------
+  // Stickers y Control
+  stickerType.addEventListener('change', ()=>{
+    stickerCustomText.style.display = stickerType.value==='custom' ? 'block' : 'none';
+  });
+
+  addStickerBtn.addEventListener('click', ()=>{
+    const type = stickerType.value;
+    const text = type==='custom' ? (stickerCustomText.value || 'Texto') : type.toUpperCase();
+    stickers.push({id:uid(), text, position: stickerPosition.value});
+    renderStickers();
+    if(!playing) drawFrame(0);
+  });
+
+  function renderStickers(){
+    stickerList.innerHTML = '';
+    stickers.forEach((s, idx)=>{
+      const li = document.createElement('li');
+      li.style.cssText = 'display:flex;justify-content:space-between;background:var(--bg);padding:6px;border-radius:6px;font-size:12px;';
+      li.innerHTML = `<span>${s.text} (${s.position})</span>`;
+      const btn = document.createElement('button'); btn.className='small danger'; btn.textContent='✕';
+      btn.onclick = ()=>{ stickers.splice(idx,1); renderStickers(); if(!playing) drawFrame(0); };
+      li.appendChild(btn);
+      stickerList.appendChild(li);
+    });
+  }
+
+  function drawStickers(t){
+    stickers.forEach(s=>{
+      ctx.save();
+      ctx.font = 'bold ' + Math.round(canvas.width*0.035) + 'px sans-serif';
+      ctx.fillStyle = '#7c5cff';
+      const pad = 20;
+      let x = pad, y = canvas.height-pad;
+      if(s.position==='top-right') x = canvas.width - 250;
+      if(s.position==='center') { x = canvas.width/2 - 100; y = canvas.height/2; }
+      ctx.fillText(s.text, x, y);
+      ctx.restore();
+    });
+  }
+
+  // Reproducción
   function tick(){
     const total = totalDuration();
-    let t;
-    if(audioLoaded && !audioEl.paused){
-      t = audioEl.currentTime;
-    } else if(audioLoaded){
-      t = audioEl.currentTime;
-    } else {
-      t = (performance.now()/1000) - manualStart;
-    }
-    if(t >= total){
-      drawFrame(Math.max(0,total-0.01));
-      stopPlayback();
-      return;
-    }
+    let t = audioLoaded && !audioEl.paused ? audioEl.currentTime : (performance.now()/1000) - manualStart;
+    if(t >= total){ stopPlayback(); return; }
     drawFrame(t);
-    trackFill.style.width = (total? (t/total*100):0) + '%';
+    trackFill.style.width = (total ? (t/total*100) : 0) + '%';
     timeNow.textContent = fmt(t);
     rafId = requestAnimationFrame(tick);
   }
 
   function startPlayback(){
     if(!clips.length) return;
-    playing = true;
-    playBtn.textContent = '⏸ Pausar';
-    if(audioLoaded){
-      audioEl.play().catch(()=>{});
-    } else {
-      manualStart = performance.now()/1000;
-    }
+    playing = true; playBtn.textContent = '⏸ Pausar';
+    clips.forEach(c=>{ if(c.type==='video') c.video.play().catch(()=>{}); });
+    if(audioLoaded) audioEl.play().catch(()=>{}); else manualStart = performance.now()/1000;
     rafId = requestAnimationFrame(tick);
   }
 
-  function pausePlayback(){
-    playing = false;
-    playBtn.textContent = '▶ Reproducir';
+  function stopPlayback(){
+    playing = false; playBtn.textContent = '▶ Reproducir';
+    clips.forEach(c=>{ if(c.type==='video') c.video.pause(); });
     if(audioLoaded) audioEl.pause();
     if(rafId) cancelAnimationFrame(rafId);
   }
 
-  function stopPlayback(){
-    pausePlayback();
-    if(audioLoaded) audioEl.currentTime = 0;
-    trackFill.style.width='0%';
-    timeNow.textContent='0:00';
-    drawFrame(0);
-  }
-
-  playBtn.addEventListener('click', ()=>{
-    if(playing) pausePlayback(); else startPlayback();
-  });
+  playBtn.addEventListener('click', ()=>{ if(playing) stopPlayback(); else startPlayback(); });
   stopBtn.addEventListener('click', stopPlayback);
 
-  track.addEventListener('click', e=>{
-    const rect = track.getBoundingClientRect();
-    const frac = (e.clientX-rect.left)/rect.width;
-    const total = totalDuration();
-    const t = frac*total;
-    if(audioLoaded) audioEl.currentTime = t;
-    else manualStart = performance.now()/1000 - t;
-    drawFrame(t);
-    trackFill.style.width = (frac*100)+'%';
-    timeNow.textContent = fmt(t);
+  autoDistBtn.addEventListener('click', ()=>{
+    if(!clips.length) return;
+    const dur = audioLoaded ? audioDuration : totalClipsDuration() || 10;
+    const each = Math.max(0.5, dur/clips.length);
+    clips.forEach(c=> c.duration = Math.round(each*10)/10);
+    renderClipList();
   });
 
-  // ---------- Export Corregido ----------
-  function pickMime(){
-    const options = [
-      'video/webm;codecs=vp9,opus',
-      'video/webm;codecs=vp8,opus',
-      'video/webm'
-    ];
-    for(const o of options){ if(window.MediaRecorder && MediaRecorder.isTypeSupported(o)) return o; }
-    return 'video/webm';
-  }
+  clearAllBtn.addEventListener('click', ()=>{ clips = []; renderClipList(); });
+  function updateTotals(){ timeTotal.textContent = fmt(totalDuration()); }
 
+  // Exportación
   exportBtn.addEventListener('click', async ()=>{
-    if(!clips.length){ exportStatus.textContent = 'Agrega al menos una imagen primero.'; return; }
-    if(playing) pausePlayback();
+    if(!clips.length) return;
+    if(playing) stopPlayback();
     exportBtn.disabled = true;
-    exportStatus.textContent = 'Preparando exportación...';
+    exportStatus.textContent = 'Procesando exportación de video...';
 
     const stream = canvas.captureStream(30);
-    let audioCtx, sourceNode, destNode;
     if(audioLoaded){
       try{
-        audioCtx = new (window.AudioContext||window.webkitAudioContext)();
-        sourceNode = audioCtx.createMediaElementSource(audioEl);
-        destNode = audioCtx.createMediaStreamDestination();
-        sourceNode.connect(destNode);
-        destNode.stream.getAudioTracks().forEach(tr=> stream.addTrack(tr));
-      }catch(e){ /* Si falla, exporta solo video */ }
+        const audioCtx = new AudioContext();
+        const src = audioCtx.createMediaElementSource(audioEl);
+        const dest = audioCtx.createMediaStreamDestination();
+        src.connect(dest);
+        dest.stream.getAudioTracks().forEach(t=> stream.addTrack(t));
+      }catch(e){}
     }
 
-    const bitrateMap = {'720p':4000000, '1080p':8000000, '4k':28000000};
-    const recorder = new MediaRecorder(stream, {mimeType: pickMime(), videoBitsPerSecond: bitrateMap[qualitySelect.value] || 8000000});
+    const recorder = new MediaRecorder(stream, {mimeType:'video/webm'});
     const chunks = [];
-    recorder.ondataavailable = e=>{ if(e.data.size>0) chunks.push(e.data); };
-
+    recorder.ondataavailable = e=> chunks.push(e.data);
     recorder.onstop = ()=>{
       const blob = new Blob(chunks, {type:'video/webm'});
-      exportStatus.textContent = 'Guardando archivo...';
-      
-      // Descarga limpia nativa desde cualquier navegador
-      const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
-      a.href = url; 
-      a.download = 'autoclip-video.webm'; 
-      document.body.appendChild(a);
+      a.href = URL.createObjectURL(blob);
+      a.download = 'autoclip-video-pro.webm';
       a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-      
-      exportStatus.textContent = '✅ ¡Video generado y descargado con éxito!';
+      exportStatus.textContent = '✅ ¡Video descargado correctamente!';
       exportBtn.disabled = false;
     };
 
     const total = totalDuration();
-    recorder.start(200);
-    exportStatus.textContent = 'Grabando video (' + fmt(total) + ')... no cierres esta pestaña.';
-
-    let startTime;
-    if(audioLoaded){
-      audioEl.currentTime = 0;
-      await audioEl.play().catch(()=>{});
-    }
-    startTime = performance.now()/1000;
+    recorder.start();
+    let startTime = performance.now()/1000;
+    if(audioLoaded) { audioEl.currentTime = 0; await audioEl.play().catch(()=>{}); }
 
     function exportTick(){
-      const t = audioLoaded ? audioEl.currentTime : (performance.now()/1000 - startTime);
-      if(t >= total){
-        drawFrame(Math.max(0,total-0.01));
-        if(audioLoaded) audioEl.pause();
-        setTimeout(()=> recorder.stop(), 150);
-        return;
-      }
+      let t = audioLoaded ? audioEl.currentTime : (performance.now()/1000 - startTime);
+      if(t >= total){ recorder.stop(); if(audioLoaded) audioEl.pause(); return; }
       drawFrame(t);
-      exportStatus.textContent = 'Grabando... ' + fmt(t) + ' / ' + fmt(total);
+      exportStatus.textContent = 'Grabando: ' + fmt(t) + ' / ' + fmt(total);
       requestAnimationFrame(exportTick);
     }
     requestAnimationFrame(exportTick);
   });
 
   applyCanvasSize();
-  drawFrame(0);
 })();
 </script>
 </body>
