@@ -89,6 +89,10 @@
         <button id="autoDistBtn" class="small">⏱ Repartir por igual</button>
         <button id="clearAllBtn" class="small danger">Vaciar lista</button>
       </div>
+      <div class="row" style="margin-top:8px;">
+        <button id="sortAscBtn" class="small">🔢 Ordenar 1 ➔ 9 (Ascendente)</button>
+        <button id="sortDescBtn" class="small">🔢 Ordenar 9 ➔ 1 (Descendente)</button>
+      </div>
     </div>
 
     <div class="card">
@@ -218,6 +222,9 @@
   const exportBtn = document.getElementById('exportBtn');
   const exportStatus = document.getElementById('exportStatus');
 
+  const sortAscBtn = document.getElementById('sortAscBtn');
+  const sortDescBtn = document.getElementById('sortDescBtn');
+
   const mov1 = document.getElementById('mov1');
   const mov2 = document.getElementById('mov2');
   const mov3 = document.getElementById('mov3');
@@ -329,6 +336,17 @@
     });
     imgInput.value = '';
   });
+
+  // LÓGICA DE ORDENAMIENTO NUMÉRICO ALFANUMÉRICO (ej: 1, 2, 10 en lugar de 1, 10, 2)
+  function sortClips(ascending = true){
+    clips.sort((a, b) => {
+      return a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' }) * (ascending ? 1 : -1);
+    });
+    renderClipList();
+  }
+
+  sortAscBtn.addEventListener('click', () => sortClips(true));
+  sortDescBtn.addEventListener('click', () => sortClips(false));
 
   function renderClipList(){
     clipList.innerHTML = '';
@@ -448,7 +466,7 @@
     syncStatus.textContent = '✅ ¡Tiempos repartidos correctamente!';
   });
 
-  // NUEVA LÓGICA DE AUTO-SINCRONIZACIÓN EN 2 FASES (0-3 MIN = 8S / 3+ MIN = 11S O LO QUE ALCANCE)
+  // AUTO-SINCRONIZACIÓN EN 2 FASES
   autoTwoPhaseBtn.addEventListener('click', ()=>{
     if(!clips.length){
       syncStatus.textContent = '⚠️ Sube imágenes primero.';
@@ -456,7 +474,7 @@
     }
 
     let tiempoAcumulado = 0;
-    const maxTiempo = audioLoaded ? audioDuration : 1500; // Si no hay audio, asume duración amplia
+    const maxTiempo = audioLoaded ? audioDuration : 1500;
     let timesText = [];
 
     for(let i = 0; i < clips.length; i++){
@@ -464,10 +482,8 @@
 
       timesText.push(fmt(tiempoAcumulado));
 
-      // Regla de los 2 tiempos
-      let duracionObjetivo = (tiempoAcumulado < 180) ? 8.0 : 11.0; // 8s en min 0-3 / 11s (rango 10-12s) en adelante
+      let duracionObjetivo = (tiempoAcumulado < 180) ? 8.0 : 11.0;
 
-      // Si quedan pocas imágenes, distribuye el resto del audio proporcionalmente
       const tiempoRestante = maxTiempo - tiempoAcumulado;
       const imagenesRestantes = clips.length - i;
       if(audioLoaded && imagenesRestantes > 0 && (tiempoRestante / imagenesRestantes) > duracionObjetivo){
@@ -478,7 +494,6 @@
       tiempoAcumulado += clips[i].duration;
     }
 
-    // Actualiza la caja de texto con los minutos generados
     timesInput.value = timesText.join('\n');
     renderClipList();
     syncStatus.textContent = '✅ ¡Ritmo de 2 tiempos (8s / 12s) aplicado!';
