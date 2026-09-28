@@ -62,6 +62,43 @@
   .badge{ font-size:10px; padding:2px 7px; border-radius:20px; background:var(--border); color:var(--muted); font-weight:700; }
   audio{ width:100%; margin-top:6px; }
   .pattern-box{ background:var(--bg); border:1px solid var(--border); padding:10px; border-radius:10px; margin-top:8px; }
+
+  /* ESTILOS DEL GENERADOR POR INTERVALOS */
+  .interval-box{
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 12px 14px;
+    margin-bottom: 12px;
+  }
+  .interval-box h3{
+    margin: 0 0 10px 0;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .interval-row{
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    color: var(--muted);
+    margin-bottom: 8px;
+    flex-wrap: wrap;
+  }
+  .interval-row input[type=number]{
+    width: 60px;
+    padding: 4px 8px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--bg);
+    color: var(--text);
+    font-size: 13px;
+    text-align: center;
+  }
 </style>
 </head>
 <body>
@@ -87,7 +124,6 @@
       <div class="dropzone" id="imgDrop">🖼️ / 🎥 Sube imágenes o videos</div>
       <input type="file" id="imgInput" accept="image/*,video/*" multiple>
       <div class="row" style="margin-top:10px;">
-        <button id="autoTwoPhaseBtn" class="small primary">✨ Auto-sincronizar por ritmo (8s / 12s)</button>
         <button id="autoDistBtn" class="small">⏱ Repartir por igual</button>
         <button id="clearAllBtn" class="small danger">Vaciar lista</button>
       </div>
@@ -99,10 +135,30 @@
 
     <div class="card">
       <h2>3. Sincronización por marcas de tiempo</h2>
-      <p style="font-size:12px;color:var(--muted);margin:0 0 8px;">Pega los minutos exactos donde cambia cada imagen (un tiempo por línea):</p>
+      
+      <!-- GENERADOR POR INTERVALOS FIJOS -->
+      <div class="interval-box">
+        <h3>⚡ Generador por intervalos fijos (más rápido, sin analizar el audio)</h3>
+        <div class="interval-row">
+          <span>Cada</span>
+          <input type="number" id="phase1Sec" value="8" min="1">
+          <span>seg, hasta el minuto</span>
+          <input type="number" id="cutoffMin" value="3" min="0">
+        </div>
+        <div class="interval-row">
+          <span>Luego, cada</span>
+          <input type="number" id="phase2Sec" value="12" min="1">
+          <span>seg hasta el final</span>
+        </div>
+        <button id="autoGenIntervalsBtn" class="primary" style="width:100%; margin-top:6px; padding:10px;">
+          ⚡ Generar tiempos automáticamente
+        </button>
+      </div>
+
+      <p style="font-size:12px;color:var(--muted);margin:0 0 8px;">Pega o revisa los minutos exactos donde cambia cada imagen (un tiempo por línea):</p>
       <textarea id="timesInput" rows="4" placeholder="0:00&#10;0:10&#10;0:25&#10;0:40" style="width:100%;resize:vertical;padding:8px;border-radius:8px;border:1px solid var(--border);background:var(--bg);color:var(--text);font-size:12px;font-family:monospace;"></textarea>
       <div class="row" style="margin-top:8px;">
-        <button id="applyTimesBtn" class="primary small">✅ Aplicar tiempos</button>
+        <button id="applyTimesBtn" class="primary small">✅ Aplicar tiempos a las imágenes</button>
       </div>
       <div class="status" id="syncStatus"></div>
     </div>
@@ -220,7 +276,6 @@
   const aspectSelect = document.getElementById('aspectSelect');
   const qualitySelect = document.getElementById('qualitySelect');
   const previewBox = document.getElementById('previewBox');
-  const autoTwoPhaseBtn = document.getElementById('autoTwoPhaseBtn');
   const autoDistBtn = document.getElementById('autoDistBtn');
   const clearAllBtn = document.getElementById('clearAllBtn');
   const applyTimesBtn = document.getElementById('applyTimesBtn');
@@ -228,6 +283,11 @@
   const syncStatus = document.getElementById('syncStatus');
   const exportBtn = document.getElementById('exportBtn');
   const exportStatus = document.getElementById('exportStatus');
+
+  const phase1SecInput = document.getElementById('phase1Sec');
+  const cutoffMinInput = document.getElementById('cutoffMin');
+  const phase2SecInput = document.getElementById('phase2Sec');
+  const autoGenIntervalsBtn = document.getElementById('autoGenIntervalsBtn');
 
   const sortAscBtn = document.getElementById('sortAscBtn');
   const sortDescBtn = document.getElementById('sortDescBtn');
@@ -266,7 +326,6 @@
 
   function uid(){ return Math.random().toString(36).slice(2,9); }
 
-  // Modificado para aceptar intensidad dinámica (velocidad / escala de zoom)
   function buildKB(style, intensity = 0.18){
     switch(style){
       case 'in': return {s0:1, s1:1+intensity*1.6, x0:0.5, y0:0.5, x1:0.5, y1:0.5};
@@ -412,7 +471,6 @@
       });
       line.appendChild(movSel);
 
-      // BARRA DE INTENSIDAD DE ZOOM / VELOCIDAD INDIVIDUAL
       const zoomContainer = document.createElement('div');
       zoomContainer.className = 'zoom-slider-container';
       zoomContainer.title = "Aumentar / Disminuir velocidad de zoom";
@@ -472,6 +530,33 @@
     if(!playing) drawFrame(0);
   }
 
+  // GENERADOR DINÁMICO POR INTERVALOS FIJOS
+  autoGenIntervalsBtn.addEventListener('click', ()=>{
+    if(!clips.length){
+      syncStatus.textContent = '⚠️ Primero sube algunas imágenes.';
+      return;
+    }
+
+    const p1Sec = Math.max(0.5, parseFloat(phase1SecInput.value) || 8);
+    const cutMin = Math.max(0, parseFloat(cutoffMinInput.value) || 3);
+    const p2Sec = Math.max(0.5, parseFloat(phase2SecInput.value) || 12);
+
+    const cutoffTimeInSec = cutMin * 60;
+    let acumulado = 0;
+    let timesText = [];
+
+    clips.forEach((c, i) => {
+      timesText.push(fmt(acumulado));
+      let duracionObj = (acumulado < cutoffTimeInSec) ? p1Sec : p2Sec;
+      c.duration = duracionObj;
+      acumulado += duracionObj;
+    });
+
+    timesInput.value = timesText.join('\n');
+    renderClipList();
+    syncStatus.textContent = `✅ ¡Tiempos generados (${p1Sec}s hasta min ${cutMin}, luego ${p2Sec}s)!`;
+  });
+
   // APLICAR TIEMPOS MANUALES DESDE TEXTAREA
   applyTimesBtn.addEventListener('click', ()=>{
     if(!clips.length){
@@ -503,40 +588,7 @@
     }
 
     renderClipList();
-    syncStatus.textContent = '✅ ¡Tiempos repartidos correctamente!';
-  });
-
-  // AUTO-SINCRONIZACIÓN EN 2 FASES
-  autoTwoPhaseBtn.addEventListener('click', ()=>{
-    if(!clips.length){
-      syncStatus.textContent = '⚠️ Sube imágenes primero.';
-      return;
-    }
-
-    let tiempoAcumulado = 0;
-    const maxTiempo = audioLoaded ? audioDuration : 1500;
-    let timesText = [];
-
-    for(let i = 0; i < clips.length; i++){
-      if(tiempoAcumulado >= maxTiempo && audioLoaded) break;
-
-      timesText.push(fmt(tiempoAcumulado));
-
-      let duracionObjetivo = (tiempoAcumulado < 180) ? 8.0 : 11.0;
-
-      const tiempoRestante = maxTiempo - tiempoAcumulado;
-      const imagenesRestantes = clips.length - i;
-      if(audioLoaded && imagenesRestantes > 0 && (tiempoRestante / imagenesRestantes) > duracionObjetivo){
-        duracionObjetivo = tiempoRestante / imagenesRestantes;
-      }
-
-      clips[i].duration = Math.round(duracionObjetivo * 10) / 10;
-      tiempoAcumulado += clips[i].duration;
-    }
-
-    timesInput.value = timesText.join('\n');
-    renderClipList();
-    syncStatus.textContent = '✅ ¡Ritmo de 2 tiempos (8s / 12s) aplicado!';
+    syncStatus.textContent = '✅ ¡Tiempos aplicados a la lista de imágenes!';
   });
 
   // REPARTIR POR IGUAL
