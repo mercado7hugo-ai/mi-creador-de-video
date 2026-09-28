@@ -3,11 +3,12 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>AutoClip Studio Pro</title><link rel="manifest" href="./manifest.json">
+<title>AutoClip Studio Pro</title>
+<link rel="manifest" href="./manifest.json">
 <script>
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
-      navigator.serviceWorker.register('./sw.js');
+      navigator.serviceWorker.register('./sw.js').catch(()=>{});
     });
   }
 </script>
@@ -49,8 +50,6 @@
   .clip .controls-line{ display:flex; gap:6px; align-items:center; flex-wrap:wrap; }
   .clip input[type=number]{ width:65px; padding:4px 6px; border-radius:6px; border:1px solid var(--border); background:var(--panel); color:var(--text); font-size:12px; }
   .clip select, select{ padding:6px 8px; border-radius:6px; border:1px solid var(--border); background:var(--panel); color:var(--text); font-size:12px; }
-  .zoom-slider-container{ display:flex; align-items:center; gap:4px; font-size:11px; color:var(--muted); background:var(--panel); padding:2px 6px; border-radius:6px; border:1px solid var(--border); }
-  .zoom-slider-container input[type=range]{ width:70px; accent-color:var(--accent); cursor:pointer; }
   .empty-hint{ color:var(--muted); font-size:12px; text-align:center; padding:10px; }
   .previewBox{ background:#000; border-radius:12px; overflow:hidden; position:relative; aspect-ratio:16/9; }
   canvas{ width:100%; height:100%; display:block; }
@@ -63,7 +62,7 @@
   audio{ width:100%; margin-top:6px; }
   .pattern-box{ background:var(--bg); border:1px solid var(--border); padding:10px; border-radius:10px; margin-top:8px; }
 
-  /* ESTILOS DEL GENERADOR POR INTERVALOS */
+  /* ESTILOS DEL GENERADOR POR INTERVALOS FIJOS */
   .interval-box{
     background: rgba(255, 255, 255, 0.03);
     border: 1px solid var(--border);
@@ -123,6 +122,9 @@
       <h2>2. Medios (Imágenes o Videos)</h2>
       <div class="dropzone" id="imgDrop">🖼️ / 🎥 Sube imágenes o videos</div>
       <input type="file" id="imgInput" accept="image/*,video/*" multiple>
+      <!-- Input oculto para reemplazo individual -->
+      <input type="file" id="replaceInput" accept="image/*,video/*">
+
       <div class="row" style="margin-top:10px;">
         <button id="autoDistBtn" class="small">⏱ Repartir por igual</button>
         <button id="clearAllBtn" class="small danger">Vaciar lista</button>
@@ -138,7 +140,7 @@
       
       <!-- GENERADOR POR INTERVALOS FIJOS -->
       <div class="interval-box">
-        <h3>⚡ Generador por intervalos fijos (más rápido, sin analizar el audio)</h3>
+        <h3>⚡ Generador por intervalos fijos</h3>
         <div class="interval-row">
           <span>Cada</span>
           <input type="number" id="phase1Sec" value="8" min="1">
@@ -155,7 +157,7 @@
         </button>
       </div>
 
-      <p style="font-size:12px;color:var(--muted);margin:0 0 8px;">Pega o revisa los minutos exactos donde cambia cada imagen (un tiempo por línea):</p>
+      <p style="font-size:12px;color:var(--muted);margin:0 0 8px;">Pega los minutos exactos donde cambia cada imagen (un tiempo por línea):</p>
       <textarea id="timesInput" rows="4" placeholder="0:00&#10;0:10&#10;0:25&#10;0:40" style="width:100%;resize:vertical;padding:8px;border-radius:8px;border:1px solid var(--border);background:var(--bg);color:var(--text);font-size:12px;font-family:monospace;"></textarea>
       <div class="row" style="margin-top:8px;">
         <button id="applyTimesBtn" class="primary small">✅ Aplicar tiempos a las imágenes</button>
@@ -222,11 +224,6 @@
             <option value="pan-du">3. Paneo Abajo</option>
           </select>
         </div>
-        <div class="zoom-slider-container" style="margin-bottom:8px;">
-          <span>🔍 Intensidad general Zoom/Velocidad:</span>
-          <input type="range" id="globalZoomIntensity" min="0.05" max="0.50" step="0.01" value="0.18">
-          <span id="globalZoomVal">18%</span>
-        </div>
         <button id="applyPatternBtn" class="small primary" style="width:100%;">🔄 Aplicar secuencia a todas las imágenes</button>
       </div>
     </div>
@@ -264,12 +261,14 @@
   const audioDrop = document.getElementById('audioDrop');
   const audioStatus = document.getElementById('audioStatus');
   const imgInput = document.getElementById('imgInput');
+  const replaceInput = document.getElementById('replaceInput');
   const imgDrop = document.getElementById('imgDrop');
   const clipList = document.getElementById('clipList');
   const clipCount = document.getElementById('clipCount');
   const emptyHint = document.getElementById('emptyHint');
   const playBtn = document.getElementById('playBtn');
   const stopBtn = document.getElementById('stopBtn');
+  const track = document.getElementById('track');
   const trackFill = document.getElementById('trackFill');
   const timeNow = document.getElementById('timeNow');
   const timeTotal = document.getElementById('timeTotal');
@@ -295,8 +294,6 @@
   const mov1 = document.getElementById('mov1');
   const mov2 = document.getElementById('mov2');
   const mov3 = document.getElementById('mov3');
-  const globalZoomIntensity = document.getElementById('globalZoomIntensity');
-  const globalZoomVal = document.getElementById('globalZoomVal');
   const applyPatternBtn = document.getElementById('applyPatternBtn');
   const globalFilterSelect = document.getElementById('globalFilterSelect');
   const applyGlobalFilterBtn = document.getElementById('applyGlobalFilterBtn');
@@ -323,10 +320,15 @@
   let playing = false;
   let rafId = null;
   let manualStart = 0;
+  let currentTime = 0;
+  let clipToReplaceIndex = null;
+
+  let audioCtx = null;
 
   function uid(){ return Math.random().toString(36).slice(2,9); }
 
-  function buildKB(style, intensity = 0.18){
+  function buildKB(style){
+    const intensity = 0.18;
     switch(style){
       case 'in': return {s0:1, s1:1+intensity*1.6, x0:0.5, y0:0.5, x1:0.5, y1:0.5};
       case 'out': return {s0:1+intensity*1.6, s1:1, x0:0.5, y0:0.5, x1:0.5, y1:0.5};
@@ -359,12 +361,12 @@
     const [w,h] = RES[aspectSelect.value][qualitySelect.value];
     canvas.width = w; canvas.height = h;
     previewBox.style.aspectRatio = w + '/' + h;
-    if(!playing) drawFrame(0);
+    if(!playing) drawFrame(currentTime);
   }
   aspectSelect.addEventListener('change', applyCanvasSize);
   qualitySelect.addEventListener('change', applyCanvasSize);
 
-  // Audio
+  // Audio Drop
   audioDrop.addEventListener('click', ()=> audioInput.click());
   audioInput.addEventListener('change', e=>{
     const f = e.target.files[0];
@@ -379,7 +381,7 @@
     };
   });
 
-  // Imagen / Video
+  // Img Drop
   imgDrop.addEventListener('click', ()=> imgInput.click());
   imgInput.addEventListener('change', e=>{
     const files = Array.from(e.target.files);
@@ -390,13 +392,13 @@
         const video = document.createElement('video');
         video.src = url; video.muted = true; video.playsInline = true;
         video.onloadedmetadata = ()=>{
-          clips.push({ id: uid(), name: f.name, type:'video', video, url, duration: video.duration||5, kbStyle:'static', zoomIntensity: 0.18, kb: buildKB('static', 0.18), filter:'none' });
+          clips.push({ id: uid(), name: f.name, type:'video', video, url, duration: video.duration||5, kbStyle:'static', kb: buildKB('static'), filter:'none' });
           renderClipList();
         };
       } else {
         const img = new Image();
         img.onload = ()=>{
-          clips.push({ id: uid(), name: f.name, type:'image', img, url, duration: 3, kbStyle:'in', zoomIntensity: 0.18, kb: buildKB('in', 0.18), filter:'none' });
+          clips.push({ id: uid(), name: f.name, type:'image', img, url, duration: 5, kbStyle:'pan-lr', kb: buildKB('pan-lr'), filter:'none' });
           renderClipList();
         };
         img.src = url;
@@ -405,350 +407,420 @@
     imgInput.value = '';
   });
 
-  // Ordenamiento
-  function sortClips(ascending = true){
-    clips.sort((a, b) => {
-      return a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' }) * (ascending ? 1 : -1);
-    });
-    renderClipList();
-  }
+  // REEMPLAZAR IMAGEN/VIDEO INDIVIDUAL
+  replaceInput.addEventListener('change', e=>{
+    const f = e.target.files[0];
+    if(!f || clipToReplaceIndex === null) return;
 
-  sortAscBtn.addEventListener('click', () => sortClips(true));
-  sortDescBtn.addEventListener('click', () => sortClips(false));
+    const url = URL.createObjectURL(f);
+    const isVideo = f.type.startsWith('video/');
+    const oldClip = clips[clipToReplaceIndex];
 
-  globalZoomIntensity.addEventListener('input', ()=>{
-    globalZoomVal.textContent = Math.round(globalZoomIntensity.value * 100) + '%';
+    if(isVideo){
+      const video = document.createElement('video');
+      video.src = url; video.muted = true; video.playsInline = true;
+      video.onloadedmetadata = ()=>{
+        clips[clipToReplaceIndex] = {
+          ...oldClip,
+          name: f.name,
+          type: 'video',
+          video,
+          img: null,
+          url
+        };
+        renderClipList();
+      };
+    } else {
+      const img = new Image();
+      img.onload = ()=>{
+        clips[clipToReplaceIndex] = {
+          ...oldClip,
+          name: f.name,
+          type: 'image',
+          img,
+          video: null,
+          url
+        };
+        renderClipList();
+      };
+      img.src = url;
+    }
+    replaceInput.value = '';
   });
 
-  function renderClipList(){
-    clipList.innerHTML = '';
-    emptyHint.style.display = clips.length ? 'none' : 'block';
-    clipCount.textContent = clips.length + (clips.length===1?' elemento':' elementos');
-    clips.forEach((c, idx)=>{
-      const li = document.createElement('li');
-      li.className = 'clip';
+  // ORDENAR ALFABÉTICAMENTE POR NOMBRE
+  sortAscBtn.addEventListener('click', ()=>{
+    clips.sort((a,b) => a.name.localeCompare(b.name, undefined, {numeric: true, sensitivity: 'base'}));
+    renderClipList();
+  });
 
-      const media = c.type==='video' ? document.createElement('video') : document.createElement('img');
-      media.src = c.url; media.className = 'media-preview';
-      li.appendChild(media);
+  sortDescBtn.addEventListener('click', ()=>{
+    clips.sort((a,b) => b.name.localeCompare(a.name, undefined, {numeric: true, sensitivity: 'base'}));
+    renderClipList();
+  });
 
-      const meta = document.createElement('div');
-      meta.className = 'meta';
-      const name = document.createElement('div');
-      name.className = 'name';
-      name.textContent = (idx+1) + '. ' + (c.type==='video'?'🎥 ':'🖼️ ') + c.name;
-      meta.appendChild(name);
-
-      const line = document.createElement('div');
-      line.className = 'controls-line';
-
-      const durInput = document.createElement('input');
-      durInput.type = 'number'; durInput.min = '0.3'; durInput.step = '0.1'; durInput.value = c.duration;
-      durInput.title = "Duración en segundos";
-      durInput.addEventListener('input', ()=>{
-        c.duration = Math.max(0.3, parseFloat(durInput.value)||3);
-        updateTotals();
-      });
-      line.appendChild(durInput);
-
-      const movSel = document.createElement('select');
-      [
-        ['in','🔍 Zoom In'],
-        ['out','🔍 Zoom Out'],
-        ['pan-lr','➡ Paneo Der'],
-        ['pan-rl','⬅ Paneo Izq'],
-        ['pan-du','⬇ Paneo Abajo'],
-        ['static','⏹ Estático']
-      ].forEach(([val, label])=>{
-        const opt = document.createElement('option'); opt.value = val; opt.textContent = label;
-        if(c.kbStyle===val) opt.selected = true;
-        movSel.appendChild(opt);
-      });
-      movSel.addEventListener('change', ()=>{
-        c.kbStyle = movSel.value;
-        c.kb = buildKB(c.kbStyle, c.zoomIntensity);
-        if(!playing) drawFrame(0);
-      });
-      line.appendChild(movSel);
-
-      const zoomContainer = document.createElement('div');
-      zoomContainer.className = 'zoom-slider-container';
-      zoomContainer.title = "Aumentar / Disminuir velocidad de zoom";
-
-      const zoomLabel = document.createElement('span');
-      zoomLabel.textContent = '🔍';
-
-      const zoomSlider = document.createElement('input');
-      zoomSlider.type = 'range'; zoomSlider.min = '0.05'; zoomSlider.max = '0.50'; zoomSlider.step = '0.01';
-      zoomSlider.value = c.zoomIntensity || 0.18;
-
-      const zoomValShow = document.createElement('span');
-      zoomValShow.textContent = Math.round(zoomSlider.value * 100) + '%';
-
-      zoomSlider.addEventListener('input', ()=>{
-        c.zoomIntensity = parseFloat(zoomSlider.value);
-        c.kb = buildKB(c.kbStyle, c.zoomIntensity);
-        zoomValShow.textContent = Math.round(c.zoomIntensity * 100) + '%';
-        if(!playing) drawFrame(0);
-      });
-
-      zoomContainer.appendChild(zoomLabel);
-      zoomContainer.appendChild(zoomSlider);
-      zoomContainer.appendChild(zoomValShow);
-      line.appendChild(zoomContainer);
-
-      const filterSel = document.createElement('select');
-      [
-        ['none','🎨 Normal'],
-        ['vintage','📜 Vintage'],
-        ['vivid','✨ Vívido'],
-        ['warm','🔥 Cálido'],
-        ['cool','❄️ Frío'],
-        ['bw','⚫ B&N'],
-        ['sepia','🟤 Sepia']
-      ].forEach(([val, label])=>{
-        const opt = document.createElement('option'); opt.value = val; opt.textContent = label;
-        if(c.filter===val) opt.selected = true;
-        filterSel.appendChild(opt);
-      });
-      filterSel.addEventListener('change', ()=>{
-        c.filter = filterSel.value;
-        if(!playing) drawFrame(0);
-      });
-      line.appendChild(filterSel);
-
-      const delBtn = document.createElement('button');
-      delBtn.className='small danger'; delBtn.textContent='✕';
-      delBtn.addEventListener('click', ()=>{ clips.splice(idx,1); renderClipList(); updateTotals(); });
-      line.appendChild(delBtn);
-
-      meta.appendChild(line);
-      li.appendChild(meta);
-      clipList.appendChild(li);
-    });
-    updateTotals();
-    if(!playing) drawFrame(0);
-  }
-
-  // GENERADOR DINÁMICO POR INTERVALOS FIJOS
+  // GENERAR TIEMPOS POR INTERVALOS
   autoGenIntervalsBtn.addEventListener('click', ()=>{
-    if(!clips.length){
-      syncStatus.textContent = '⚠️ Primero sube algunas imágenes.';
-      return;
+    const p1Sec = parseFloat(phase1SecInput.value) || 8;
+    const cMin = parseFloat(cutoffMinInput.value) || 3;
+    const p2Sec = parseFloat(phase2SecInput.value) || 12;
+
+    const cutoffSec = cMin * 60;
+    const maxDur = audioLoaded ? audioDuration : 1800;
+
+    let timeList = [0];
+    let currentSec = 0;
+
+    while(currentSec < maxDur){
+      let step = (currentSec < cutoffSec) ? p1Sec : p2Sec;
+      currentSec += step;
+      if(currentSec >= maxDur) break;
+      timeList.push(currentSec);
     }
 
-    const p1Sec = Math.max(0.5, parseFloat(phase1SecInput.value) || 8);
-    const cutMin = Math.max(0, parseFloat(cutoffMinInput.value) || 3);
-    const p2Sec = Math.max(0.5, parseFloat(phase2SecInput.value) || 12);
+    const lines = timeList.map(s => fmt(s));
+    timesInput.value = lines.join('\n');
 
-    const cutoffTimeInSec = cutMin * 60;
-    let acumulado = 0;
-    let timesText = [];
-
-    clips.forEach((c, i) => {
-      timesText.push(fmt(acumulado));
-      let duracionObj = (acumulado < cutoffTimeInSec) ? p1Sec : p2Sec;
-      c.duration = duracionObj;
-      acumulado += duracionObj;
-    });
-
-    timesInput.value = timesText.join('\n');
-    renderClipList();
-    syncStatus.textContent = `✅ ¡Tiempos generados (${p1Sec}s hasta min ${cutMin}, luego ${p2Sec}s)!`;
+    applyTimesFromInput();
   });
 
-  // APLICAR TIEMPOS MANUALES DESDE TEXTAREA
-  applyTimesBtn.addEventListener('click', ()=>{
-    if(!clips.length){
-      syncStatus.textContent = '⚠️ Primero sube algunas imágenes.';
+  function applyTimesFromInput(){
+    const lines = timesInput.value.split('\n').map(l=>l.trim()).filter(l=>l!=='');
+    if(lines.length === 0){
+      syncStatus.textContent = '❌ Escribe o genera al menos una marca de tiempo.';
       return;
     }
-    const text = timesInput.value;
-    const lines = text.split('\n');
-    const times = [];
-
-    lines.forEach(l=>{
-      const sec = parseTimeToSeconds(l);
-      if(sec !== null) times.push(sec);
-    });
-
-    if(times.length === 0){
-      syncStatus.textContent = '⚠️ Escribe al menos un tiempo (ejemplo: 0:10).';
+    if(clips.length === 0){
+      syncStatus.textContent = '❌ Primero agrega imágenes o videos.';
       return;
     }
 
-    times.sort((a,b)=> a - b);
+    const times = lines.map(parseTimeToSeconds).filter(t => t !== null && !isNaN(t));
 
-    for(let i=0; i < clips.length; i++){
-      if(i < times.length - 1){
-        clips[i].duration = Math.max(0.5, Math.round((times[i+1] - times[i]) * 10) / 10);
-      } else if(i === times.length - 1 && audioLoaded && audioDuration > times[i]){
-        clips[i].duration = Math.max(0.5, Math.round((audioDuration - times[i]) * 10) / 10);
+    for(let i=0; i<clips.length; i++){
+      if(i < times.length){
+        const start = times[i];
+        let end = (i + 1 < times.length) ? times[i+1] : (audioLoaded ? audioDuration : start + 8);
+        if(end <= start) end = start + 5;
+        clips[i].duration = Math.max(0.5, end - start);
       }
     }
 
     renderClipList();
-    syncStatus.textContent = '✅ ¡Tiempos aplicados a la lista de imágenes!';
+    syncStatus.textContent = `✅ ¡Sincronizado! Se asignaron marcas a ${Math.min(clips.length, times.length)} elementos.`;
+  }
+
+  applyTimesBtn.addEventListener('click', applyTimesFromInput);
+
+  autoDistBtn.addEventListener('click', ()=>{
+    if(clips.length === 0) return;
+    const target = audioLoaded ? audioDuration : 60;
+    const per = Math.max(1, target / clips.length);
+    clips.forEach(c => c.duration = per);
+    renderClipList();
   });
 
-  // REPARTIR POR IGUAL
-  autoDistBtn.addEventListener('click', ()=>{
-    if(!clips.length) return;
-    const dur = audioLoaded ? audioDuration : totalClipsDuration() || 10;
-    const each = Math.max(0.5, dur/clips.length);
-    clips.forEach(c=> c.duration = Math.round(each*10)/10);
+  clearAllBtn.addEventListener('click', ()=>{
+    clips = [];
     renderClipList();
-    syncStatus.textContent = '✅ Tiempo total dividido por igual entre las imágenes.';
   });
 
   applyPatternBtn.addEventListener('click', ()=>{
-    if(!clips.length) return;
-    const pattern = [mov1.value, mov2.value, mov3.value];
-    const globalIntensity = parseFloat(globalZoomIntensity.value);
-    clips.forEach((c, idx)=>{
-      const selectedMov = pattern[idx % 3];
-      c.kbStyle = selectedMov;
-      c.zoomIntensity = globalIntensity;
-      c.kb = buildKB(selectedMov, globalIntensity);
+    if(clips.length === 0) return;
+    const seq = [mov1.value, mov2.value, mov3.value];
+    clips.forEach((c, idx) => {
+      const style = seq[idx % 3];
+      c.kbStyle = style;
+      c.kb = buildKB(style);
     });
     renderClipList();
   });
 
   applyGlobalFilterBtn.addEventListener('click', ()=>{
-    const filter = globalFilterSelect.value;
-    clips.forEach(c=> c.filter = filter);
+    const val = globalFilterSelect.value;
+    clips.forEach(c => c.filter = val);
     renderClipList();
   });
 
-  function drawClipFrame(clip, localT, alpha){
-    const isVid = clip.type === 'video';
-    const media = isVid ? clip.video : clip.img;
-    if(!media) return;
+  function renderClipList(){
+    clipList.innerHTML = '';
+    emptyHint.style.display = clips.length ? 'none' : 'block';
+    clipCount.textContent = clips.length + ' elementos';
 
-    if(isVid && playing){
-      const vidTime = localT * clip.duration;
-      if(Math.abs(media.currentTime - vidTime) > 0.3) media.currentTime = vidTime;
-    }
+    clips.forEach((c, idx)=>{
+      const li = document.createElement('li');
+      li.className = 'clip';
+      
+      const thumb = document.createElement(c.type === 'image' ? 'img' : 'video');
+      thumb.className = 'media-preview';
+      thumb.src = c.url;
 
-    const scale = clip.kb.s0 + (clip.kb.s1 - clip.kb.s0)*localT;
-    const cx = clip.kb.x0 + (clip.kb.x1 - clip.kb.x0)*localT;
-    const cy = clip.kb.y0 + (clip.kb.y1 - clip.kb.y0)*localT;
+      const meta = document.createElement('div');
+      meta.className = 'meta';
 
-    const cw = canvas.width, ch = canvas.height;
-    const canvasAspect = cw/ch;
-    const mediaW = isVid ? media.videoWidth||16 : media.width;
-    const mediaH = isVid ? media.videoHeight||9 : media.height;
-    const mediaAspect = mediaW/mediaH;
+      const topRow = document.createElement('div');
+      topRow.style.display = 'flex';
+      topRow.style.justifySpaceBetween = 'space-between';
+      topRow.style.alignItems = 'center';
 
-    let baseW, baseH;
-    if(mediaAspect > canvasAspect){ baseH = mediaH; baseW = mediaH*canvasAspect; }
-    else { baseW = mediaW; baseH = mediaW/canvasAspect; }
+      const name = document.createElement('div');
+      name.className = 'name';
+      name.textContent = `${idx + 1}. ${c.name}`;
+      topRow.appendChild(name);
 
-    const cropW = baseW/scale, cropH = baseH/scale;
-    let sx = cx*mediaW - cropW/2;
-    let sy = cy*mediaH - cropH/2;
-    sx = Math.max(0, Math.min(mediaW-cropW, sx));
-    sy = Math.max(0, Math.min(mediaH-cropH, sy));
+      const ctrlLine = document.createElement('div');
+      ctrlLine.className = 'controls-line';
 
-    ctx.save();
-    ctx.globalAlpha = alpha;
-    ctx.filter = FILTER_CSS[clip.filter] || 'none';
-    ctx.drawImage(media, sx, sy, cropW, cropH, 0, 0, cw, ch);
-    ctx.filter = 'none';
-    ctx.restore();
+      const durIn = document.createElement('input');
+      durIn.type = 'number'; durIn.value = c.duration.toFixed(1); durIn.step = '0.5'; durIn.min = '0.5';
+      durIn.onchange = e => { c.duration = Math.max(0.5, parseFloat(e.target.value)||1); updateTotals(); };
+
+      const selKB = document.createElement('select');
+      selKB.innerHTML = `
+        <option value="pan-lr" ${c.kbStyle==='pan-lr'?'selected':''}>Paneo Der</option>
+        <option value="pan-rl" ${c.kbStyle==='pan-rl'?'selected':''}>Paneo Izq</option>
+        <option value="in" ${c.kbStyle==='in'?'selected':''}>Zoom In</option>
+        <option value="out" ${c.kbStyle==='out'?'selected':''}>Zoom Out</option>
+        <option value="pan-du" ${c.kbStyle==='pan-du'?'selected':''}>Paneo Abajo</option>
+        <option value="static" ${c.kbStyle==='static'?'selected':''}>Estático</option>
+      `;
+      selKB.onchange = e => { c.kbStyle = e.target.value; c.kb = buildKB(c.kbStyle); drawFrame(currentTime); };
+
+      const selFil = document.createElement('select');
+      selFil.innerHTML = `
+        <option value="none" ${c.filter==='none'?'selected':''}>🎨 Normal</option>
+        <option value="vintage" ${c.filter==='vintage'?'selected':''}>📜 Vintage</option>
+        <option value="vivid" ${c.filter==='vivid'?'selected':''}>✨ Vívido</option>
+        <option value="warm" ${c.filter==='warm'?'selected':''}>🔥 Cálido</option>
+        <option value="cool" ${c.filter==='cool'?'selected':''}>❄️ Frío</option>
+        <option value="bw" ${c.filter==='bw'?'selected':''}>⚫ B/N</option>
+        <option value="sepia" ${c.filter==='sepia'?'selected':''}>🟤 Sepia</option>
+      `;
+      selFil.onchange = e => { c.filter = e.target.value; drawFrame(currentTime); };
+
+      // Botón para reemplazar imagen
+      const replaceBtn = document.createElement('button');
+      replaceBtn.className = 'small';
+      replaceBtn.textContent = '🔄 Cambiar';
+      replaceBtn.title = 'Reemplazar este archivo por otra imagen o video';
+      replaceBtn.onclick = () => {
+        clipToReplaceIndex = idx;
+        replaceInput.click();
+      };
+
+      const delBtn = document.createElement('button');
+      delBtn.className = 'small danger'; delBtn.textContent = '✕';
+      delBtn.onclick = () => { clips.splice(idx,1); renderClipList(); };
+
+      ctrlLine.appendChild(document.createTextNode('Seg:'));
+      ctrlLine.appendChild(durIn);
+      ctrlLine.appendChild(selKB);
+      ctrlLine.appendChild(selFil);
+      ctrlLine.appendChild(replaceBtn);
+      ctrlLine.appendChild(delBtn);
+
+      meta.appendChild(topRow);
+      meta.appendChild(ctrlLine);
+
+      li.appendChild(thumb);
+      li.appendChild(meta);
+      clipList.appendChild(li);
+    });
+
+    updateTotals();
   }
 
-  function findSegment(t){
+  function updateTotals(){
+    const t = totalDuration();
+    timeTotal.textContent = fmt(t);
+    if(!playing) drawFrame(currentTime);
+  }
+
+  function getClipAtTime(t){
     let acc = 0;
-    for(let i=0;i<clips.length;i++){
-      const d = clips[i].duration;
-      if(t < acc+d || i===clips.length-1) return {index:i, segStart:acc, localT: Math.min(1,Math.max(0,(t-acc)/d))};
-      acc += d;
+    for(let i=0; i<clips.length; i++){
+      const dur = clips[i].duration;
+      if(t >= acc && t < acc + dur){
+        return { clip: clips[i], progress: (t - acc)/dur, index: i, localTime: t - acc };
+      }
+      acc += dur;
     }
-    return {index:0, segStart:0, localT:0};
+    return null;
   }
 
-  function drawFrame(t){
-    ctx.fillStyle = '#000'; ctx.fillRect(0,0,canvas.width,canvas.height);
-    if(!clips.length) return;
+  function drawClip(clip, progress, localTime, targetCtx = ctx){
+    if(!clip) return;
+    const W = targetCtx.canvas.width, H = targetCtx.canvas.height;
 
-    const {index, localT} = findSegment(t);
-    drawClipFrame(clips[index], localT, 1);
+    let media = clip.type === 'image' ? clip.img : clip.video;
+    let mw = media.videoWidth || media.width || W;
+    let mh = media.videoHeight || media.height || H;
+
+    if(clip.type === 'video' && clip.video){
+      if(Math.abs(clip.video.currentTime - localTime) > 0.3){
+        clip.video.currentTime = localTime % clip.video.duration;
+      }
+    }
+
+    const kb = clip.kb || buildKB('static');
+    const scale = kb.s0 + (kb.s1 - kb.s0) * progress;
+    const cx = kb.x0 + (kb.x1 - kb.x0) * progress;
+    const cy = kb.y0 + (kb.y1 - kb.y0) * progress;
+
+    const baseScale = Math.max(W/mw, H/mh);
+    const sw = mw * baseScale * scale;
+    const sh = mh * baseScale * scale;
+
+    const dx = (W - sw) * cx;
+    const dy = (H - sh) * cy;
+
+    targetCtx.save();
+    targetCtx.filter = FILTER_CSS[clip.filter] || 'none';
+    targetCtx.drawImage(media, dx, dy, sw, sh);
+    targetCtx.restore();
   }
 
-  function tick(){
-    const total = totalDuration();
-    let t = audioLoaded && !audioEl.paused ? audioEl.currentTime : (performance.now()/1000) - manualStart;
-    if(t >= total){ stopPlayback(); return; }
-    drawFrame(t);
-    trackFill.style.width = (total ? (t/total*100) : 0) + '%';
-    timeNow.textContent = fmt(t);
-    rafId = requestAnimationFrame(tick);
+  function drawFrame(t, targetCtx = ctx){
+    const W = targetCtx.canvas.width, H = targetCtx.canvas.height;
+    targetCtx.fillStyle = '#000';
+    targetCtx.fillRect(0, 0, W, H);
+
+    const active = getClipAtTime(t);
+    if(active){
+      drawClip(active.clip, active.progress, active.localTime, targetCtx);
+    }
   }
 
-  function startPlayback(){
-    if(!clips.length) return;
-    playing = true; playBtn.textContent = '⏸ Pausar';
-    clips.forEach(c=>{ if(c.type==='video') c.video.play().catch(()=>{}); });
-    if(audioLoaded) audioEl.play().catch(()=>{}); else manualStart = performance.now()/1000;
-    rafId = requestAnimationFrame(tick);
+  function loop(){
+    if(!playing) return;
+    currentTime = (Date.now() - manualStart) / 1000;
+    const maxT = totalDuration();
+
+    if(currentTime >= maxT){
+      stop();
+      return;
+    }
+
+    drawFrame(currentTime);
+    trackFill.style.width = (currentTime / maxT * 100) + '%';
+    timeNow.textContent = fmt(currentTime);
+
+    rafId = requestAnimationFrame(loop);
   }
 
-  function stopPlayback(){
-    playing = false; playBtn.textContent = '▶ Reproducir';
-    clips.forEach(c=>{ if(c.type==='video') c.video.pause(); });
-    if(audioLoaded) audioEl.pause();
-    if(rafId) cancelAnimationFrame(rafId);
-  }
-
-  playBtn.addEventListener('click', ()=>{ if(playing) stopPlayback(); else startPlayback(); });
-  stopBtn.addEventListener('click', stopPlayback);
-  clearAllBtn.addEventListener('click', ()=>{ clips = []; renderClipList(); });
-  function updateTotals(){ timeTotal.textContent = fmt(totalDuration()); }
-
-  exportBtn.addEventListener('click', async ()=>{
-    if(!clips.length) return;
-    if(playing) stopPlayback();
-    exportBtn.disabled = true;
-    exportStatus.textContent = 'Procesando exportación...';
-
-    const stream = canvas.captureStream(30);
+  function play(){
+    if(clips.length === 0 && !audioLoaded) return;
+    playing = true;
+    manualStart = Date.now() - (currentTime * 1000);
     if(audioLoaded){
-      try{
-        const audioCtx = new AudioContext();
-        const src = audioCtx.createMediaElementSource(audioEl);
+      audioEl.currentTime = currentTime;
+      audioEl.play().catch(()=>{});
+    }
+    playBtn.textContent = '⏸ Pausa';
+    loop();
+  }
+
+  function stop(){
+    playing = false;
+    if(rafId) cancelAnimationFrame(rafId);
+    if(audioLoaded) audioEl.pause();
+    playBtn.textContent = '▶ Reproducir';
+  }
+
+  playBtn.addEventListener('click', ()=>{
+    if(playing) stop(); else play();
+  });
+
+  stopBtn.addEventListener('click', ()=>{
+    stop();
+    currentTime = 0;
+    trackFill.style.width = '0%';
+    timeNow.textContent = '0:00';
+    drawFrame(0);
+  });
+
+  track.addEventListener('click', e => {
+    const rect = track.getBoundingClientRect();
+    const ratio = (e.clientX - rect.left) / rect.width;
+    currentTime = ratio * totalDuration();
+    if(audioLoaded) audioEl.currentTime = currentTime;
+    trackFill.style.width = (ratio * 100) + '%';
+    timeNow.textContent = fmt(currentTime);
+    drawFrame(currentTime);
+  });
+
+  // EXPORTACIÓN DE VIDEO
+  exportBtn.addEventListener('click', async ()=>{
+    if(clips.length === 0){
+      exportStatus.textContent = '❌ Agrega al menos una imagen o video para exportar.';
+      return;
+    }
+
+    stop();
+    exportStatus.textContent = '⏳ Preparando motor de renderizado...';
+    exportBtn.disabled = true;
+
+    try {
+      const stream = canvas.captureStream(30);
+      
+      // Integrar audio mediante AudioContext
+      if(audioLoaded){
+        if(!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        if(audioCtx.state === 'suspended') await audioCtx.resume();
+
         const dest = audioCtx.createMediaStreamDestination();
-        src.connect(dest);
-        dest.stream.getAudioTracks().forEach(t=> stream.addTrack(t));
-      }catch(e){}
-    }
+        const source = audioCtx.createMediaElementSource(audioEl);
+        source.connect(dest);
+        source.connect(audioCtx.destination); // Para que también suene en altavoces si se desea
 
-    const recorder = new MediaRecorder(stream, {mimeType:'video/webm'});
-    const chunks = [];
-    recorder.ondataavailable = e=> chunks.push(e.data);
-    recorder.onstop = ()=>{
-      const blob = new Blob(chunks, {type:'video/webm'});
-      const a = document.createElement('a');
-      a.href = URL.createObjectURL(blob);
-      a.download = 'autoclip-video.webm';
-      a.click();
-      exportStatus.textContent = '✅ ¡Video descargado correctamente!';
+        const audioTrack = dest.stream.getAudioTracks()[0];
+        if(audioTrack) stream.addTrack(audioTrack);
+      }
+
+      const recorder = new MediaRecorder(stream, { mimeType: 'video/webm;codecs=vp9' });
+      const chunks = [];
+
+      recorder.ondataavailable = e => { if(e.data.size > 0) chunks.push(e.data); };
+      recorder.onstop = ()=>{
+        const blob = new Blob(chunks, { type: 'video/webm' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `AutoClip_Video_${Date.now()}.webm`;
+        a.click();
+        exportStatus.textContent = '✅ ¡Video descargado con éxito!';
+        exportBtn.disabled = false;
+      };
+
+      recorder.start();
+      
+      let renderTime = 0;
+      const totalDur = totalDuration();
+      const fps = 30;
+      const step = 1 / fps;
+
+      if(audioLoaded){
+        audioEl.currentTime = 0;
+        await audioEl.play();
+      }
+
+      const renderInterval = setInterval(()=>{
+        drawFrame(renderTime);
+        exportStatus.textContent = `🎬 Exportando... ${Math.floor((renderTime/totalDur)*100)}%`;
+        renderTime += step;
+
+        if(renderTime >= totalDur){
+          clearInterval(renderInterval);
+          if(audioLoaded) audioEl.pause();
+          recorder.stop();
+        }
+      }, 1000 / fps);
+
+    } catch(err) {
+      console.error(err);
+      exportStatus.textContent = '❌ Error durante la exportación: ' + err.message;
       exportBtn.disabled = false;
-    };
-
-    const total = totalDuration();
-    recorder.start();
-    let startTime = performance.now()/1000;
-    if(audioLoaded) { audioEl.currentTime = 0; await audioEl.play().catch(()=>{}); }
-
-    function exportTick(){
-      let t = audioLoaded ? audioEl.currentTime : (performance.now()/1000 - startTime);
-      if(t >= total){ recorder.stop(); if(audioLoaded) audioEl.pause(); return; }
-      drawFrame(t);
-      exportStatus.textContent = 'Grabando: ' + fmt(t) + ' / ' + fmt(total);
-      requestAnimationFrame(exportTick);
     }
-    requestAnimationFrame(exportTick);
   });
 
   applyCanvasSize();
