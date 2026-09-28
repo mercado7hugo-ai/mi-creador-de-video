@@ -85,7 +85,8 @@
       <div class="dropzone" id="imgDrop">🖼️ / 🎥 Sube imágenes o videos</div>
       <input type="file" id="imgInput" accept="image/*,video/*" multiple>
       <div class="row" style="margin-top:10px;">
-        <button id="autoDistBtn" class="small primary">⏱ Repartir tiempo por igual según audio</button>
+        <button id="autoTwoPhaseBtn" class="small primary">✨ Auto-sincronizar por ritmo (8s / 12s)</button>
+        <button id="autoDistBtn" class="small">⏱ Repartir por igual</button>
         <button id="clearAllBtn" class="small danger">Vaciar lista</button>
       </div>
     </div>
@@ -208,6 +209,7 @@
   const aspectSelect = document.getElementById('aspectSelect');
   const qualitySelect = document.getElementById('qualitySelect');
   const previewBox = document.getElementById('previewBox');
+  const autoTwoPhaseBtn = document.getElementById('autoTwoPhaseBtn');
   const autoDistBtn = document.getElementById('autoDistBtn');
   const clearAllBtn = document.getElementById('clearAllBtn');
   const applyTimesBtn = document.getElementById('applyTimesBtn');
@@ -412,7 +414,7 @@
     if(!playing) drawFrame(0);
   }
 
-  // APLICAR TIEMPOS
+  // APLICAR TIEMPOS MANUALES DESDE TEXTAREA
   applyTimesBtn.addEventListener('click', ()=>{
     if(!clips.length){
       syncStatus.textContent = '⚠️ Primero sube algunas imágenes.';
@@ -444,6 +446,42 @@
 
     renderClipList();
     syncStatus.textContent = '✅ ¡Tiempos repartidos correctamente!';
+  });
+
+  // NUEVA LÓGICA DE AUTO-SINCRONIZACIÓN EN 2 FASES (0-3 MIN = 8S / 3+ MIN = 11S O LO QUE ALCANCE)
+  autoTwoPhaseBtn.addEventListener('click', ()=>{
+    if(!clips.length){
+      syncStatus.textContent = '⚠️ Sube imágenes primero.';
+      return;
+    }
+
+    let tiempoAcumulado = 0;
+    const maxTiempo = audioLoaded ? audioDuration : 1500; // Si no hay audio, asume duración amplia
+    let timesText = [];
+
+    for(let i = 0; i < clips.length; i++){
+      if(tiempoAcumulado >= maxTiempo && audioLoaded) break;
+
+      timesText.push(fmt(tiempoAcumulado));
+
+      // Regla de los 2 tiempos
+      let duracionObjetivo = (tiempoAcumulado < 180) ? 8.0 : 11.0; // 8s en min 0-3 / 11s (rango 10-12s) en adelante
+
+      // Si quedan pocas imágenes, distribuye el resto del audio proporcionalmente
+      const tiempoRestante = maxTiempo - tiempoAcumulado;
+      const imagenesRestantes = clips.length - i;
+      if(audioLoaded && imagenesRestantes > 0 && (tiempoRestante / imagenesRestantes) > duracionObjetivo){
+        duracionObjetivo = tiempoRestante / imagenesRestantes;
+      }
+
+      clips[i].duration = Math.round(duracionObjetivo * 10) / 10;
+      tiempoAcumulado += clips[i].duration;
+    }
+
+    // Actualiza la caja de texto con los minutos generados
+    timesInput.value = timesText.join('\n');
+    renderClipList();
+    syncStatus.textContent = '✅ ¡Ritmo de 2 tiempos (8s / 12s) aplicado!';
   });
 
   // REPARTIR POR IGUAL
@@ -604,7 +642,7 @@
     requestAnimationFrame(exportTick);
   });
 
- applyCanvasSize();
+  applyCanvasSize();
 })();
 </script>
 </body>
