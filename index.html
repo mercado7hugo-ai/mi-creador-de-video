@@ -49,6 +49,8 @@
   .clip .controls-line{ display:flex; gap:6px; align-items:center; flex-wrap:wrap; }
   .clip input[type=number]{ width:65px; padding:4px 6px; border-radius:6px; border:1px solid var(--border); background:var(--panel); color:var(--text); font-size:12px; }
   .clip select, select{ padding:6px 8px; border-radius:6px; border:1px solid var(--border); background:var(--panel); color:var(--text); font-size:12px; }
+  .zoom-slider-container{ display:flex; align-items:center; gap:4px; font-size:11px; color:var(--muted); background:var(--panel); padding:2px 6px; border-radius:6px; border:1px solid var(--border); }
+  .zoom-slider-container input[type=range]{ width:70px; accent-color:var(--accent); cursor:pointer; }
   .empty-hint{ color:var(--muted); font-size:12px; text-align:center; padding:10px; }
   .previewBox{ background:#000; border-radius:12px; overflow:hidden; position:relative; aspect-ratio:16/9; }
   canvas{ width:100%; height:100%; display:block; }
@@ -164,6 +166,11 @@
             <option value="pan-du">3. Paneo Abajo</option>
           </select>
         </div>
+        <div class="zoom-slider-container" style="margin-bottom:8px;">
+          <span>🔍 Intensidad general Zoom/Velocidad:</span>
+          <input type="range" id="globalZoomIntensity" min="0.05" max="0.50" step="0.01" value="0.18">
+          <span id="globalZoomVal">18%</span>
+        </div>
         <button id="applyPatternBtn" class="small primary" style="width:100%;">🔄 Aplicar secuencia a todas las imágenes</button>
       </div>
     </div>
@@ -228,6 +235,8 @@
   const mov1 = document.getElementById('mov1');
   const mov2 = document.getElementById('mov2');
   const mov3 = document.getElementById('mov3');
+  const globalZoomIntensity = document.getElementById('globalZoomIntensity');
+  const globalZoomVal = document.getElementById('globalZoomVal');
   const applyPatternBtn = document.getElementById('applyPatternBtn');
   const globalFilterSelect = document.getElementById('globalFilterSelect');
   const applyGlobalFilterBtn = document.getElementById('applyGlobalFilterBtn');
@@ -257,8 +266,8 @@
 
   function uid(){ return Math.random().toString(36).slice(2,9); }
 
-  function buildKB(style){
-    const intensity = 0.18;
+  // Modificado para aceptar intensidad dinámica (velocidad / escala de zoom)
+  function buildKB(style, intensity = 0.18){
     switch(style){
       case 'in': return {s0:1, s1:1+intensity*1.6, x0:0.5, y0:0.5, x1:0.5, y1:0.5};
       case 'out': return {s0:1+intensity*1.6, s1:1, x0:0.5, y0:0.5, x1:0.5, y1:0.5};
@@ -322,13 +331,13 @@
         const video = document.createElement('video');
         video.src = url; video.muted = true; video.playsInline = true;
         video.onloadedmetadata = ()=>{
-          clips.push({ id: uid(), name: f.name, type:'video', video, url, duration: video.duration||5, kbStyle:'static', kb: buildKB('static'), filter:'none' });
+          clips.push({ id: uid(), name: f.name, type:'video', video, url, duration: video.duration||5, kbStyle:'static', zoomIntensity: 0.18, kb: buildKB('static', 0.18), filter:'none' });
           renderClipList();
         };
       } else {
         const img = new Image();
         img.onload = ()=>{
-          clips.push({ id: uid(), name: f.name, type:'image', img, url, duration: 3, kbStyle:'in', kb: buildKB('in'), filter:'none' });
+          clips.push({ id: uid(), name: f.name, type:'image', img, url, duration: 3, kbStyle:'in', zoomIntensity: 0.18, kb: buildKB('in', 0.18), filter:'none' });
           renderClipList();
         };
         img.src = url;
@@ -337,7 +346,7 @@
     imgInput.value = '';
   });
 
-  // LÓGICA DE ORDENAMIENTO NUMÉRICO ALFANUMÉRICO (ej: 1, 2, 10 en lugar de 1, 10, 2)
+  // Ordenamiento
   function sortClips(ascending = true){
     clips.sort((a, b) => {
       return a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' }) * (ascending ? 1 : -1);
@@ -347,6 +356,10 @@
 
   sortAscBtn.addEventListener('click', () => sortClips(true));
   sortDescBtn.addEventListener('click', () => sortClips(false));
+
+  globalZoomIntensity.addEventListener('input', ()=>{
+    globalZoomVal.textContent = Math.round(globalZoomIntensity.value * 100) + '%';
+  });
 
   function renderClipList(){
     clipList.innerHTML = '';
@@ -394,10 +407,37 @@
       });
       movSel.addEventListener('change', ()=>{
         c.kbStyle = movSel.value;
-        c.kb = buildKB(movSel.value);
+        c.kb = buildKB(c.kbStyle, c.zoomIntensity);
         if(!playing) drawFrame(0);
       });
       line.appendChild(movSel);
+
+      // BARRA DE INTENSIDAD DE ZOOM / VELOCIDAD INDIVIDUAL
+      const zoomContainer = document.createElement('div');
+      zoomContainer.className = 'zoom-slider-container';
+      zoomContainer.title = "Aumentar / Disminuir velocidad de zoom";
+
+      const zoomLabel = document.createElement('span');
+      zoomLabel.textContent = '🔍';
+
+      const zoomSlider = document.createElement('input');
+      zoomSlider.type = 'range'; zoomSlider.min = '0.05'; zoomSlider.max = '0.50'; zoomSlider.step = '0.01';
+      zoomSlider.value = c.zoomIntensity || 0.18;
+
+      const zoomValShow = document.createElement('span');
+      zoomValShow.textContent = Math.round(zoomSlider.value * 100) + '%';
+
+      zoomSlider.addEventListener('input', ()=>{
+        c.zoomIntensity = parseFloat(zoomSlider.value);
+        c.kb = buildKB(c.kbStyle, c.zoomIntensity);
+        zoomValShow.textContent = Math.round(c.zoomIntensity * 100) + '%';
+        if(!playing) drawFrame(0);
+      });
+
+      zoomContainer.appendChild(zoomLabel);
+      zoomContainer.appendChild(zoomSlider);
+      zoomContainer.appendChild(zoomValShow);
+      line.appendChild(zoomContainer);
 
       const filterSel = document.createElement('select');
       [
@@ -512,10 +552,12 @@
   applyPatternBtn.addEventListener('click', ()=>{
     if(!clips.length) return;
     const pattern = [mov1.value, mov2.value, mov3.value];
+    const globalIntensity = parseFloat(globalZoomIntensity.value);
     clips.forEach((c, idx)=>{
       const selectedMov = pattern[idx % 3];
       c.kbStyle = selectedMov;
-      c.kb = buildKB(selectedMov);
+      c.zoomIntensity = globalIntensity;
+      c.kb = buildKB(selectedMov, globalIntensity);
     });
     renderClipList();
   });
