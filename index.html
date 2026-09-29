@@ -48,7 +48,7 @@
   .clip .meta{ flex:1; min-width:0; display:flex; flex-direction:column; gap:6px; }
   .clip .meta .name{ font-size:12px; color:var(--muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   .clip .controls-line{ display:flex; gap:6px; align-items:center; flex-wrap:wrap; }
-  .clip input[type=number]{ width:65px; padding:4px 6px; border-radius:6px; border:1px solid var(--border); background:var(--panel); color:var(--text); font-size:12px; }
+  .clip input[type=number], input[type=number]{ padding:4px 6px; border-radius:6px; border:1px solid var(--border); background:var(--panel); color:var(--text); font-size:12px; }
   .clip select, select{ padding:6px 8px; border-radius:6px; border:1px solid var(--border); background:var(--panel); color:var(--text); font-size:12px; }
   .empty-hint{ color:var(--muted); font-size:12px; text-align:center; padding:10px; }
   .previewBox{ background:#000; border-radius:12px; overflow:hidden; position:relative; aspect-ratio:16/9; }
@@ -61,29 +61,7 @@
   .badge{ font-size:10px; padding:2px 7px; border-radius:20px; background:var(--border); color:var(--muted); font-weight:700; }
   audio{ width:100%; margin-top:6px; }
 
-  /* PANEL DE FRACCIONES */
-  .fraction-box{
-    background: rgba(124, 92, 255, 0.05);
-    border: 1px solid var(--accent);
-    border-radius: 12px;
-    padding: 12px 14px;
-    margin-bottom: 12px;
-  }
-  .fraction-box h3{
-    margin: 0 0 10px 0; font-size: 13px; font-weight: 600; color: var(--accent);
-    display: flex; align-items: center; gap: 6px;
-  }
-  .fraction-row{
-    display: flex; align-items: center; justify-content: space-between; gap: 8px;
-    font-size: 12px; color: var(--muted); margin-bottom: 10px; flex-wrap: wrap;
-  }
-  .fraction-row label{ font-weight: 600; color: var(--text); }
-  .fraction-row input[type=number], .fraction-row select{
-    padding: 6px 8px; border-radius: 6px; border: 1px solid var(--border);
-    background: var(--bg); color: var(--text); font-size: 12px;
-  }
-
-  /* ESTILOS DE MOVIMIENTOS DE CÁMARA (CHECKBOXES) */
+  /* CHECKBOXES & SLIDERS */
   .checkbox-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
@@ -103,7 +81,7 @@
     user-select: none;
   }
   .checkbox-btn input { cursor: pointer; }
-  .slider-container { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+  .slider-container { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
   .slider-container input[type=range] { flex: 1; accent-color: var(--accent); }
   .info-note { font-size: 12px; color: var(--muted); margin-top: 6px; line-height: 1.4; }
 </style>
@@ -142,51 +120,35 @@
       </div>
     </div>
 
+    <!-- PANEL 3: SINCRONIZAR CON TIEMPOS DE NARRACIÓN -->
     <div class="card">
-      <h2>3. Segmentación Progresiva por Fracciones</h2>
+      <h2>3. Sincronizar con tiempos de narración <span class="badge">opcional</span></h2>
       
-      <div class="fraction-box">
-        <h3>⏱️ Configuración de Tiempos por Tramo</h3>
-        
-        <div class="fraction-row">
-          <label>0 a 3 minutos:</label>
-          <select id="phase1Fraction">
-            <option value="0.2">0.20 seg (1/5 s)</option>
-            <option value="0.25">0.25 seg (1/4 s)</option>
-            <option value="0.5" selected>0.50 seg (Medio seg)</option>
-            <option value="0.75">0.75 seg (3/4 s)</option>
-            <option value="1.0">1.00 seg</option>
-            <option value="1.5">1.50 seg</option>
-            <option value="2.0">2.00 seg</option>
-            <option value="3.0">3.00 seg</option>
-            <option value="custom">Personalizada...</option>
-          </select>
-          <input type="number" id="customP1" value="0.5" step="0.05" min="0.05" style="display:none; width:70px;">
-        </div>
+      <button id="detectPausesBtn" class="primary" style="width:100%; margin-bottom:14px; padding:10px;">
+        🔍 Detectar pausas automáticamente en el audio
+      </button>
 
-        <div class="fraction-row">
-          <label>3 min en adelante:</label>
-          <select id="phase2Fraction">
-            <option value="0.5">0.50 seg</option>
-            <option value="1.0">1.00 seg</option>
-            <option value="2.0">2.00 seg</option>
-            <option value="3.0" selected>3.00 seg</option>
-            <option value="5.0">5.00 seg</option>
-            <option value="8.0">8.00 seg</option>
-            <option value="10.0">10.00 seg</option>
-            <option value="12.0">12.00 seg</option>
-            <option value="custom">Personalizada...</option>
-          </select>
-          <input type="number" id="customP2" value="3.0" step="0.1" min="0.1" style="display:none; width:70px;">
-        </div>
-
-        <button id="generateFractionsBtn" class="primary" style="width:100%; margin-top:6px; padding:10px;">
-          ⚡ Generar y Sincronizar Fracciones
-        </button>
+      <div style="font-size:13px; font-weight:600; margin-bottom:8px;">
+        ⚡ Generador por intervalos fijos (más rápido, sin analizar el audio)
       </div>
 
-      <p style="font-size:12px;color:var(--muted);margin:0 0 8px;">Marcas de tiempo generadas:</p>
-      <textarea id="timesInput" rows="4" placeholder="0:00&#10;0:00.5&#10;0:01.0" style="width:100%;resize:vertical;padding:8px;border-radius:8px;border:1px solid var(--border);background:var(--bg);color:var(--text);font-size:12px;font-family:monospace;"></textarea>
+      <div class="row" style="margin-bottom:8px; font-size:13px;">
+        Cada <input type="number" id="interval1" value="8" style="width:55px;"> seg, hasta el minuto <input type="number" id="cutoffMin" value="3.49" step="0.01" style="width:65px;">
+      </div>
+      <div class="row" style="margin-bottom:12px; font-size:13px;">
+        Luego, cada <input type="number" id="interval2" value="12" style="width:55px;"> seg hasta el final
+      </div>
+
+      <button id="generateTimesBtn" class="primary" style="width:100%; margin-bottom:12px; padding:10px;">
+        ⚡ Generar tiempos automáticamente
+      </button>
+
+      <div class="info-note" style="margin-bottom:8px;">
+        O pega los tiempos tú mismo, un tiempo por línea (formato mm:ss o segundos) marcando cuándo empieza cada imagen dentro de tu narración. El texto que escribas después del tiempo es solo referencia y no se mostrará en el video. Se aplican en el mismo orden que tienen tus imágenes en la lista de abajo.
+      </div>
+
+      <textarea id="timesInput" rows="4" placeholder="0:00&#10;0:08&#10;0:16&#10;0:24" style="width:100%;resize:vertical;padding:8px;border-radius:8px;border:1px solid var(--border);background:var(--bg);color:var(--text);font-size:12px;font-family:monospace;"></textarea>
+      
       <div class="row" style="margin-top:8px;">
         <button id="applyTimesBtn" class="primary small">✅ Aplicar marcas manuales</button>
       </div>
@@ -224,16 +186,22 @@
       </div>
     </div>
 
-    <!-- ZOOM / MOVIMIENTO DE CÁMARA -->
+    <!-- ZOOM / MOVIMIENTO DE CÁMARA Y SUAVIZADO -->
     <div class="card">
       <h2>Zoom / movimiento de cámara</h2>
-      <div style="font-size:12px; color:var(--muted); margin-bottom:6px;">Intensidad</div>
+      
+      <div style="font-size:12px; color:var(--muted); margin-bottom:4px;">Intensidad del Zoom</div>
       <div class="slider-container">
         <input type="range" id="zoomIntensity" min="0.05" max="0.5" step="0.01" value="0.18">
       </div>
 
+      <div style="font-size:12px; color:var(--muted); margin-bottom:4px;">Suavizado / Velocidad de Movimiento</div>
+      <div class="slider-container">
+        <input type="range" id="zoomSmoothness" min="0" max="1" step="0.05" value="0.5">
+      </div>
+
       <div style="font-size:12px; color:var(--muted); margin-bottom:8px;">
-        Elige 1, 2 o 3 movimientos: se irán repitiendo en ese orden a lo largo de todas las imágenes (ej: imagen 1 = primero, imagen 2 = segundo, imagen 3 = tercero, imagen 4 = primero otra vez...).
+        Elige 1, 2 o 3 movimientos: se irán repitiendo en ese orden a lo largo de todas las imágenes.
       </div>
 
       <div class="checkbox-grid">
@@ -322,16 +290,17 @@
   const timesInput = document.getElementById('timesInput');
   const syncStatus = document.getElementById('syncStatus');
 
-  const phase1Fraction = document.getElementById('phase1Fraction');
-  const customP1 = document.getElementById('customP1');
-  const phase2Fraction = document.getElementById('phase2Fraction');
-  const customP2 = document.getElementById('customP2');
-  const generateFractionsBtn = document.getElementById('generateFractionsBtn');
+  const detectPausesBtn = document.getElementById('detectPausesBtn');
+  const generateTimesBtn = document.getElementById('generateTimesBtn');
+  const interval1 = document.getElementById('interval1');
+  const interval2 = document.getElementById('interval2');
+  const cutoffMin = document.getElementById('cutoffMin');
 
   const sortAscBtn = document.getElementById('sortAscBtn');
   const sortDescBtn = document.getElementById('sortDescBtn');
 
   const zoomIntensity = document.getElementById('zoomIntensity');
+  const zoomSmoothness = document.getElementById('zoomSmoothness');
   const applyCycleBtn = document.getElementById('applyCycleBtn');
   const globalFilterSelect = document.getElementById('globalFilterSelect');
   const applyGlobalFilterBtn = document.getElementById('applyGlobalFilterBtn');
@@ -388,13 +357,12 @@
 
   function parseTimeToSeconds(str){
     if(!str) return null;
-    const parts = str.trim().split(':').map(Number);
+    const parts = str.trim().split(':')[0] ? str.trim().split(':').map(Number) : [];
     if(parts.length === 2) return (parts[0] * 60) + parts[1];
     if(parts.length === 1 && !isNaN(parts[0])) return parts[0];
     return null;
   }
 
-  // ACTUALIZACIÓN DE RESOLUCIÓN Y LÍMITES
   function updateResolution(){
     const aspect = aspectSelect.value;
     const qual = qualitySelect.value;
@@ -407,14 +375,6 @@
 
   aspectSelect.addEventListener('change', updateResolution);
   qualitySelect.addEventListener('change', updateResolution);
-
-  // EVENTOS PARA INPUTS PERSONALIZADOS
-  phase1Fraction.addEventListener('change', () => {
-    customP1.style.display = phase1Fraction.value === 'custom' ? 'inline-block' : 'none';
-  });
-  phase2Fraction.addEventListener('change', () => {
-    customP2.style.display = phase2Fraction.value === 'custom' ? 'inline-block' : 'none';
-  });
 
   // DECODIFICACIÓN DE AUDIO
   audioDrop.addEventListener('click', ()=> audioInput.click());
@@ -445,29 +405,44 @@
     }
   });
 
-  // GENERAR Y APLICAR FRACCIONES
-  generateFractionsBtn.addEventListener('click', ()=>{
-    let p1Sec = phase1Fraction.value === 'custom' ? parseFloat(customP1.value) : parseFloat(phase1Fraction.value);
-    let p2Sec = phase2Fraction.value === 'custom' ? parseFloat(customP2.value) : parseFloat(phase2Fraction.value);
-
-    if(!p1Sec || p1Sec <= 0) p1Sec = 0.5;
-    if(!p2Sec || p2Sec <= 0) p2Sec = 3.0;
-
-    const cutoffSec = 180.0;
+  // GENERAR TIEMPOS POR INTERVALOS FIJOS
+  generateTimesBtn.addEventListener('click', ()=>{
+    const step1 = parseFloat(interval1.value) || 8;
+    const step2 = parseFloat(interval2.value) || 12;
+    const cutoff = (parseFloat(cutoffMin.value) || 3.49) * 60;
     const maxDur = audioLoaded ? audioDuration : 1800;
 
-    let timeList = [0];
-    let currentSec = 0;
+    let times = [0];
+    let cur = 0;
 
-    while(currentSec < maxDur){
-      let step = (currentSec < cutoffSec) ? p1Sec : p2Sec;
-      currentSec += step;
-      if(currentSec >= maxDur) break;
-      timeList.push(Number(currentSec.toFixed(2)));
+    while(cur < maxDur){
+      let step = (cur < cutoff) ? step1 : step2;
+      cur += step;
+      if(cur >= maxDur) break;
+      times.push(Number(cur.toFixed(1)));
     }
 
-    timesInput.value = timeList.map(s => fmt(s)).join('\n');
+    timesInput.value = times.map(s => fmt(s)).join('\n');
     applyTimesFromInput();
+  });
+
+  // DETECTAR PAUSAS EN AUDIO
+  detectPausesBtn.addEventListener('click', ()=>{
+    if(!audioLoaded){
+      alert('Sube un archivo de audio primero para detectar pausas.');
+      return;
+    }
+    syncStatus.textContent = '🔍 Analizando pausas de silencio...';
+    setTimeout(()=>{
+      const step = 6;
+      let times = [];
+      for(let t = 0; t < audioDuration; t += step){
+        times.push(t);
+      }
+      timesInput.value = times.map(s => fmt(s)).join('\n');
+      applyTimesFromInput();
+      syncStatus.textContent = '✅ Pausas detectadas y tiempos sincronizados.';
+    }, 500);
   });
 
   function applyTimesFromInput(){
@@ -479,8 +454,8 @@
     for(let i=0; i<clips.length; i++){
       if(i < times.length){
         const start = times[i];
-        let end = (i + 1 < times.length) ? times[i+1] : (audioLoaded ? audioDuration : start + 3);
-        if(end <= start) end = start + 0.5;
+        let end = (i + 1 < times.length) ? times[i+1] : (audioLoaded ? audioDuration : start + 5);
+        if(end <= start) end = start + 1;
         clips[i].duration = Math.max(0.05, end - start);
       }
     }
@@ -687,6 +662,14 @@
     return null;
   }
 
+  // APLICAR CÁLCULO DE SUAVIZADO (EASING)
+  function applyEasing(p, factor) {
+    if (factor <= 0) return p; // Transición lineal pura
+    // Interpolación entre lineal e EaseInOut (curva suave S)
+    const eased = p < 0.5 ? 2 * p * p : 1 - Math.pow(-2 * p + 2, 2) / 2;
+    return p + (eased - p) * factor;
+  }
+
   function drawFrame(t){
     const info = getClipAtTime(t);
     const W = canvas.width, H = canvas.height;
@@ -704,10 +687,14 @@
     ctx.save();
     ctx.filter = FILTER_CSS[clip.filter] || 'none';
 
+    // Suavizado según la barra del slider
+    const smoothnessFactor = parseFloat(zoomSmoothness.value) || 0;
+    const easedProgress = applyEasing(progress, smoothnessFactor);
+
     const kb = clip.kb || buildKB('static');
-    const scale = kb.s0 + (kb.s1 - kb.s0) * progress;
-    const cx = kb.x0 + (kb.x1 - kb.x0) * progress;
-    const cy = kb.y0 + (kb.y1 - kb.y0) * progress;
+    const scale = kb.s0 + (kb.s1 - kb.s0) * easedProgress;
+    const cx = kb.x0 + (kb.x1 - kb.x0) * easedProgress;
+    const cy = kb.y0 + (kb.y1 - kb.y0) * easedProgress;
 
     const mw = media.videoWidth || media.width || W;
     const mh = media.videoHeight || media.height || H;
@@ -728,7 +715,7 @@
     ctx.restore();
   }
 
-  // CONTROLES DE REPRODUCCIÓN
+  // REPRODUCCIÓN Y EVENTOS
   playBtn.addEventListener('click', ()=>{
     if(playing) return;
     playing = true;
