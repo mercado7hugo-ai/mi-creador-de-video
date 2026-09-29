@@ -62,16 +62,16 @@
   audio{ width:100%; margin-top:6px; }
   .pattern-box{ background:var(--bg); border:1px solid var(--border); padding:10px; border-radius:10px; margin-top:8px; }
 
-  /* ESTILOS DEL DETECTOR AUDIO INTELIGENTE */
-  .audio-analysis-box{
+  /* ESTILOS DE SEGMENTACIÓN POR FRACCIONES */
+  .fraction-box{
     background: rgba(124, 92, 255, 0.05);
     border: 1px solid var(--accent);
     border-radius: 12px;
     padding: 12px 14px;
     margin-bottom: 12px;
   }
-  .audio-analysis-box h3{
-    margin: 0 0 8px 0;
+  .fraction-box h3{
+    margin: 0 0 10px 0;
     font-size: 13px;
     font-weight: 600;
     color: var(--accent);
@@ -79,59 +79,24 @@
     align-items: center;
     gap: 6px;
   }
-  .audio-analysis-row{
+  .fraction-row{
     display: flex;
     align-items: center;
+    justify-content: space-between;
     gap: 8px;
     font-size: 12px;
     color: var(--muted);
-    margin-bottom: 8px;
+    margin-bottom: 10px;
     flex-wrap: wrap;
   }
-  .audio-analysis-row input[type=number]{
-    width: 60px;
-    padding: 4px 6px;
+  .fraction-row label{ font-weight: 600; color: var(--text); }
+  .fraction-row input[type=number], .fraction-row select{
+    padding: 6px 8px;
     border-radius: 6px;
     border: 1px solid var(--border);
     background: var(--bg);
     color: var(--text);
     font-size: 12px;
-  }
-
-  .interval-box{
-    background: rgba(255, 255, 255, 0.03);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 12px 14px;
-    margin-bottom: 12px;
-  }
-  .interval-box h3{
-    margin: 0 0 10px 0;
-    font-size: 13px;
-    font-weight: 600;
-    color: var(--text);
-    display: flex;
-    align-items: center;
-    gap: 6px;
-  }
-  .interval-row{
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    font-size: 13px;
-    color: var(--muted);
-    margin-bottom: 8px;
-    flex-wrap: wrap;
-  }
-  .interval-row input[type=number]{
-    width: 60px;
-    padding: 4px 8px;
-    border-radius: 8px;
-    border: 1px solid var(--border);
-    background: var(--bg);
-    color: var(--text);
-    font-size: 13px;
-    text-align: center;
   }
 </style>
 </head>
@@ -139,7 +104,7 @@
 
 <header>
   <h1>🎬 AutoClip Studio Pro</h1>
-  <p>Sube imágenes, videos y audios largos con análisis de voz y silencios.</p>
+  <p>Corte por fracciones de segundo y sincronización para audios extensos.</p>
 </header>
 
 <div class="wrap">
@@ -147,7 +112,7 @@
   <div class="col">
     <div class="card">
       <h2>1. Narración / Audio (Hasta 1 Hora)</h2>
-      <div class="dropzone" id="audioDrop">🎙️ Haz clic para subir audio (mp3, wav, m4a)</div>
+      <div class="dropzone" id="audioDrop">🎙️️ Haz clic para subir audio (mp3, wav, m4a, aac)</div>
       <input type="file" id="audioInput" accept="audio/*">
       <audio id="audioEl" controls style="display:none;"></audio>
       <div class="status" id="audioStatus">Sin audio cargado.</div>
@@ -170,57 +135,58 @@
     </div>
 
     <div class="card">
-      <h2>3. Detección Inteligente de Audio (Silencios y Tono)</h2>
+      <h2>3. Segmentación Progresiva por Fracciones</h2>
       
-      <!-- DETECTOR AUDIO INTELIGENTE -->
-      <div class="audio-analysis-box">
-        <h3>🧠 Análisis por Pausas y Párrafos Largos</h3>
-        <div class="audio-analysis-row">
-          <span>Umbral silencio:</span>
-          <input type="number" id="silenceThreshold" value="0.02" step="0.01" min="0.001" max="0.1" title="Nivel de volumen mínimo para detectar voz">
-          <span>Duración pausa min:</span>
-          <input type="number" id="minSilenceSec" value="0.3" step="0.1" min="0.1" title="Segundos continuos de silencio para cortar">
-          <span>sec</span>
+      <div class="fraction-box">
+        <h3>⏱️ Configuración de Tiempos por Tramo</h3>
+        
+        <div class="fraction-row">
+          <label>0 a 3 minutos:</label>
+          <select id="phase1Fraction">
+            <option value="0.2">0.20 seg (1/5 s)</option>
+            <option value="0.25">0.25 seg (1/4 s)</option>
+            <option value="0.5" selected>0.50 seg (Medio seg)</option>
+            <option value="0.75">0.75 seg (3/4 s)</option>
+            <option value="1.0">1.00 seg</option>
+            <option value="1.5">1.50 seg</option>
+            <option value="2.0">2.00 seg</option>
+            <option value="3.0">3.00 seg</option>
+            <option value="custom">Personalizada...</option>
+          </select>
+          <input type="number" id="customP1" value="0.5" step="0.05" min="0.05" style="display:none; width:70px;">
         </div>
-        <div class="audio-analysis-row">
-          <span>Max seg por frase:</span>
-          <input type="number" id="maxSegmentSec" value="8" step="1" min="2" title="Si un párrafo supera este tiempo sin pausas, se dividirá en partes iguales">
-          <span>sec (Subdivide párrafos largos)</span>
+
+        <div class="fraction-row">
+          <label>3 min en adelante:</label>
+          <select id="phase2Fraction">
+            <option value="0.5">0.50 seg</option>
+            <option value="1.0">1.00 seg</option>
+            <option value="2.0">2.00 seg</option>
+            <option value="3.0" selected>3.00 seg</option>
+            <option value="5.0">5.00 seg</option>
+            <option value="8.0">8.00 seg</option>
+            <option value="10.0">10.00 seg</option>
+            <option value="12.0">12.00 seg</option>
+            <option value="custom">Personalizada...</option>
+          </select>
+          <input type="number" id="customP2" value="3.0" step="0.1" min="0.1" style="display:none; width:70px;">
         </div>
-        <button id="analyzeAudioBtn" class="primary" style="width:100%; margin-top:6px; padding:10px;">
-          🔍 Analizar Audio y Auto-Sincronizar
+
+        <button id="generateFractionsBtn" class="primary" style="width:100%; margin-top:6px; padding:10px;">
+          ⚡ Generar y Sincronizar Fracciones
         </button>
       </div>
 
-      <h2>4. Sincronización por Marcas / Intervalos</h2>
-      <div class="interval-box">
-        <h3>⚡ Generador por intervalos fijos</h3>
-        <div class="interval-row">
-          <span>Cada</span>
-          <input type="number" id="phase1Sec" value="8" min="1">
-          <span>seg, hasta el minuto</span>
-          <input type="number" id="cutoffMin" value="3" min="0">
-        </div>
-        <div class="interval-row">
-          <span>Luego, cada</span>
-          <input type="number" id="phase2Sec" value="12" min="1">
-          <span>seg hasta el final</span>
-        </div>
-        <button id="autoGenIntervalsBtn" style="width:100%; margin-top:4px;">
-          ⚡ Generar tiempos por intervalo
-        </button>
-      </div>
-
-      <p style="font-size:12px;color:var(--muted);margin:0 0 8px;">Pautas detectadas o manuales (un tiempo por línea):</p>
-      <textarea id="timesInput" rows="4" placeholder="0:00&#10;0:10&#10;0:25&#10;0:40" style="width:100%;resize:vertical;padding:8px;border-radius:8px;border:1px solid var(--border);background:var(--bg);color:var(--text);font-size:12px;font-family:monospace;"></textarea>
+      <p style="font-size:12px;color:var(--muted);margin:0 0 8px;">Marcas de tiempo generadas (un tiempo por línea):</p>
+      <textarea id="timesInput" rows="4" placeholder="0:00&#10;0:00.5&#10;0:01.0" style="width:100%;resize:vertical;padding:8px;border-radius:8px;border:1px solid var(--border);background:var(--bg);color:var(--text);font-size:12px;font-family:monospace;"></textarea>
       <div class="row" style="margin-top:8px;">
-        <button id="applyTimesBtn" class="primary small">✅ Aplicar tiempos manuales</button>
+        <button id="applyTimesBtn" class="primary small">✅ Aplicar marcas manuales</button>
       </div>
       <div class="status" id="syncStatus"></div>
     </div>
 
     <div class="card">
-      <h2>5. Línea de tiempo y Movimientos <span class="badge" id="clipCount">0 elementos</span></h2>
+      <h2>4. Línea de tiempo y Movimientos <span class="badge" id="clipCount">0 elementos</span></h2>
       <ul id="clipList"></ul>
       <div class="empty-hint" id="emptyHint">Aún no has agregado archivos.</div>
     </div>
@@ -337,15 +303,11 @@
   const exportBtn = document.getElementById('exportBtn');
   const exportStatus = document.getElementById('exportStatus');
 
-  const phase1SecInput = document.getElementById('phase1Sec');
-  const cutoffMinInput = document.getElementById('cutoffMin');
-  const phase2SecInput = document.getElementById('phase2Sec');
-  const autoGenIntervalsBtn = document.getElementById('autoGenIntervalsBtn');
-
-  const silenceThresholdInput = document.getElementById('silenceThreshold');
-  const minSilenceSecInput = document.getElementById('minSilenceSec');
-  const maxSegmentSecInput = document.getElementById('maxSegmentSec');
-  const analyzeAudioBtn = document.getElementById('analyzeAudioBtn');
+  const phase1Fraction = document.getElementById('phase1Fraction');
+  const customP1 = document.getElementById('customP1');
+  const phase2Fraction = document.getElementById('phase2Fraction');
+  const customP2 = document.getElementById('customP2');
+  const generateFractionsBtn = document.getElementById('generateFractionsBtn');
 
   const sortAscBtn = document.getElementById('sortAscBtn');
   const sortDescBtn = document.getElementById('sortDescBtn');
@@ -378,12 +340,8 @@
   let audioDuration = 0;
   let audioFile = null;
   let playing = false;
-  let rafId = null;
-  let manualStart = 0;
   let currentTime = 0;
   let clipToReplaceIndex = null;
-
-  let audioCtx = null;
 
   function uid(){ return Math.random().toString(36).slice(2,9); }
 
@@ -404,228 +362,71 @@
 
   function fmt(t){
     if(!isFinite(t)) t = 0;
-    const m = Math.floor(t/60), s = Math.floor(t%60);
-    return m + ':' + String(s).padStart(2,'0');
+    const m = Math.floor(t/60), s = (t%60).toFixed(1);
+    const sStr = parseFloat(s) < 10 ? '0' + s : s;
+    return m + ':' + sStr;
   }
 
   function parseTimeToSeconds(str){
     if(!str) return null;
-    const clean = str.trim().replace(/[^0-9:]/g, '');
+    const clean = str.trim();
     const parts = clean.split(':').map(Number);
     if(parts.length === 2) return (parts[0] * 60) + parts[1];
     if(parts.length === 1 && !isNaN(parts[0])) return parts[0];
     return null;
   }
 
-  function applyCanvasSize(){
-    const [w,h] = RES[aspectSelect.value][qualitySelect.value];
-    canvas.width = w; canvas.height = h;
-    previewBox.style.aspectRatio = w + '/' + h;
-    if(!playing) drawFrame(currentTime);
-  }
-  aspectSelect.addEventListener('change', applyCanvasSize);
-  qualitySelect.addEventListener('change', applyCanvasSize);
+  // EVENTOS PARA INPUTS PERSONALIZADOS DE FRACCIONES
+  phase1Fraction.addEventListener('change', () => {
+    customP1.style.display = phase1Fraction.value === 'custom' ? 'inline-block' : 'none';
+  });
+  phase2Fraction.addEventListener('change', () => {
+    customP2.style.display = phase2Fraction.value === 'custom' ? 'inline-block' : 'none';
+  });
 
-  // Audio Drop
+  // DECODIFICACIÓN EXACTA CON WEB AUDIO API (RESUELVE DESFASE 26:28 VS 24:12 EN ACC/M4A)
   audioDrop.addEventListener('click', ()=> audioInput.click());
-  audioInput.addEventListener('change', e=>{
+  audioInput.addEventListener('change', async e => {
     const f = e.target.files[0];
     if(!f) return;
     audioFile = f;
-    audioEl.src = URL.createObjectURL(f);
-    audioEl.style.display = 'block';
-    audioEl.onloadedmetadata = ()=>{
-      audioLoaded = true;
-      audioDuration = audioEl.duration;
-      audioStatus.textContent = '✅ Audio: ' + f.name + ' (' + fmt(audioDuration) + ')';
-      updateTotals();
-    };
-  });
-
-  // ANALIZADOR DE SILENCIOS, VARIACIÓN DE TONO Y SUBDIVISIÓN UNIFORME
-  analyzeAudioBtn.addEventListener('click', async ()=>{
-    if(!audioFile || !audioLoaded){
-      syncStatus.textContent = '❌ Por favor, sube un archivo de audio primero.';
-      return;
-    }
-
-    syncStatus.textContent = '⏳ Decodificando onda de audio...';
+    audioStatus.textContent = '⏳ Decodificando duración exacta del audio...';
+    
+    const objectUrl = URL.createObjectURL(f);
+    audioEl.src = objectUrl;
 
     try {
-      const arrayBuffer = await audioFile.arrayBuffer();
-      const offlineCtx = new (window.OfflineAudioContext || window.webkitOfflineAudioContext)(1, 44100, 44100);
-      const audioBuffer = await offlineCtx.decodeAudioData(arrayBuffer);
-
-      const data = audioBuffer.getChannelData(0);
-      const sampleRate = audioBuffer.sampleRate;
-      const totalSec = audioBuffer.duration;
-
-      const threshold = parseFloat(silenceThresholdInput.value) || 0.02;
-      const minSilenceSec = parseFloat(minSilenceSecInput.value) || 0.3;
-      const maxSegSec = parseFloat(maxSegmentSecInput.value) || 8;
-
-      const minSilenceSamples = Math.floor(minSilenceSec * sampleRate);
-      const stepSamples = Math.floor(0.02 * sampleRate); // Ventanas de 20ms
-
-      let rawPoints = [0];
-      let silentSamplesCount = 0;
-      let inSpeech = false;
-
-      // 1. Detectar transiciones de silencio y cambios repentinos de tono/volumen
-      let prevEnergy = 0;
-      for (let i = 0; i < data.length; i += stepSamples) {
-        let sum = 0;
-        for (let j = 0; j < stepSamples && (i + j) < data.length; j++) {
-          sum += Math.abs(data[i + j]);
-        }
-        let energy = sum / stepSamples;
-        let t = i / sampleRate;
-
-        // Detección de silencios
-        if (energy < threshold) {
-          silentSamplesCount += stepSamples;
-          if (silentSamplesCount >= minSilenceSamples && inSpeech) {
-            inSpeech = false;
-            if (t > 0.5 && t < totalSec - 0.5) rawPoints.push(t);
-          }
-        } else {
-          silentSamplesCount = 0;
-          inSpeech = true;
-        }
-
-        // Detección de cambios bruscos de tono/energía (énfasis de voz)
-        if (inSpeech && prevEnergy > 0) {
-          let energyChange = Math.abs(energy - prevEnergy) / prevEnergy;
-          if (energyChange > 4.5 && t - rawPoints[rawPoints.length - 1] > 2.5) {
-            rawPoints.push(t);
-          }
-        }
-        prevEnergy = energy;
-      }
-
-      // 2. Subdividir párrafos largos uniformemente si superan maxSegSec
-      let points = [];
-      for (let i = 0; i < rawPoints.length; i++) {
-        let current = rawPoints[i];
-        let next = (i + 1 < rawPoints.length) ? rawPoints[i + 1] : totalSec;
-        let duration = next - current;
-
-        points.push(current);
-
-        if (duration > maxSegSec) {
-          let parts = Math.ceil(duration / maxSegSec);
-          let subInterval = duration / parts;
-          for (let p = 1; p < parts; p++) {
-            points.push(current + (p * subInterval));
-          }
-        }
-      }
-
-      // Eliminar duplicados y ordenar
-      points = Array.from(new Set(points.map(p => Number(p.toFixed(2))))).sort((a,b)=>a-b);
-
-      const timeStrings = points.map(s => fmt(s));
-      timesInput.value = timeStrings.join('\n');
-
-      if(clips.length > 0){
-        applyTimesFromInput();
-        syncStatus.textContent = `⚡ ¡Detección completada! Se crearon ${points.length} puntos de corte adaptados al habla.`;
-      } else {
-        syncStatus.textContent = `⚡ ¡Detección completada! ${points.length} puntos generados. Sube imágenes para aplicar.`;
-      }
-
-    } catch (err) {
-      console.error(err);
-      syncStatus.textContent = '❌ Error al analizar el audio: ' + err.message;
+      const buffer = await f.arrayBuffer();
+      const ctxClass = window.AudioContext || window.webkitAudioContext;
+      const tempCtx = new ctxClass();
+      const decodedData = await tempCtx.decodeAudioData(buffer);
+      
+      audioLoaded = true;
+      audioDuration = decodedData.duration; // Obtenemos la duración real matemáticamente exacta
+      audioStatus.textContent = '✅ Audio: ' + f.name + ' (' + fmt(audioDuration) + ')';
+      tempCtx.close();
+      updateTotals();
+    } catch(err) {
+      // Fallback a HTML5 Audio si falla la decodificación directa
+      audioEl.onloadedmetadata = ()=>{
+        audioLoaded = true;
+        audioDuration = audioEl.duration;
+        audioStatus.textContent = '✅ Audio: ' + f.name + ' (' + fmt(audioDuration) + ')';
+        updateTotals();
+      };
     }
   });
 
-  // Img Drop
-  imgDrop.addEventListener('click', ()=> imgInput.click());
-  imgInput.addEventListener('change', e=>{
-    const files = Array.from(e.target.files);
-    files.forEach(f=>{
-      const url = URL.createObjectURL(f);
-      const isVideo = f.type.startsWith('video/');
-      if(isVideo){
-        const video = document.createElement('video');
-        video.src = url; video.muted = true; video.playsInline = true;
-        video.onloadedmetadata = ()=>{
-          clips.push({ id: uid(), name: f.name, type:'video', video, url, duration: video.duration||5, kbStyle:'static', kb: buildKB('static'), filter:'none' });
-          renderClipList();
-        };
-      } else {
-        const img = new Image();
-        img.onload = ()=>{
-          clips.push({ id: uid(), name: f.name, type:'image', img, url, duration: 5, kbStyle:'pan-lr', kb: buildKB('pan-lr'), filter:'none' });
-          renderClipList();
-        };
-        img.src = url;
-      }
-    });
-    imgInput.value = '';
-  });
+  // GENERACIÓN PROGRESIVA POR FRACCIONES DE SEGUNDO
+  generateFractionsBtn.addEventListener('click', ()=>{
+    let p1Sec = phase1Fraction.value === 'custom' ? parseFloat(customP1.value) : parseFloat(phase1Fraction.value);
+    let p2Sec = phase2Fraction.value === 'custom' ? parseFloat(customP2.value) : parseFloat(phase2Fraction.value);
 
-  // REEMPLAZAR IMAGEN/VIDEO INDIVIDUAL
-  replaceInput.addEventListener('change', e=>{
-    const f = e.target.files[0];
-    if(!f || clipToReplaceIndex === null) return;
+    if(!p1Sec || p1Sec <= 0) p1Sec = 0.5;
+    if(!p2Sec || p2Sec <= 0) p2Sec = 3.0;
 
-    const url = URL.createObjectURL(f);
-    const isVideo = f.type.startsWith('video/');
-    const oldClip = clips[clipToReplaceIndex];
-
-    if(isVideo){
-      const video = document.createElement('video');
-      video.src = url; video.muted = true; video.playsInline = true;
-      video.onloadedmetadata = ()=>{
-        clips[clipToReplaceIndex] = {
-          ...oldClip,
-          name: f.name,
-          type: 'video',
-          video,
-          img: null,
-          url
-        };
-        renderClipList();
-      };
-    } else {
-      const img = new Image();
-      img.onload = ()=>{
-        clips[clipToReplaceIndex] = {
-          ...oldClip,
-          name: f.name,
-          type: 'image',
-          img,
-          video: null,
-          url
-        };
-        renderClipList();
-      };
-      img.src = url;
-    }
-    replaceInput.value = '';
-  });
-
-  // ORDENAR ALFABÉTICAMENTE POR NOMBRE
-  sortAscBtn.addEventListener('click', ()=>{
-    clips.sort((a,b) => a.name.localeCompare(b.name, undefined, {numeric: true, sensitivity: 'base'}));
-    renderClipList();
-  });
-
-  sortDescBtn.addEventListener('click', ()=>{
-    clips.sort((a,b) => b.name.localeCompare(a.name, undefined, {numeric: true, sensitivity: 'base'}));
-    renderClipList();
-  });
-
-  // GENERAR TIEMPOS POR INTERVALOS
-  autoGenIntervalsBtn.addEventListener('click', ()=>{
-    const p1Sec = parseFloat(phase1SecInput.value) || 8;
-    const cMin = parseFloat(cutoffMinInput.value) || 3;
-    const p2Sec = parseFloat(phase2SecInput.value) || 12;
-
-    const cutoffSec = cMin * 60;
-    const maxDur = audioLoaded ? audioDuration : 1800;
+    const cutoffSec = 180.0; // 3 minutos exactamente
+    const maxDur = audioLoaded ? audioDuration : 1800; // Por defecto 30 min si no hay audio
 
     let timeList = [0];
     let currentSec = 0;
@@ -634,7 +435,7 @@
       let step = (currentSec < cutoffSec) ? p1Sec : p2Sec;
       currentSec += step;
       if(currentSec >= maxDur) break;
-      timeList.push(currentSec);
+      timeList.push(Number(currentSec.toFixed(2)));
     }
 
     const lines = timeList.map(s => fmt(s));
@@ -659,30 +460,88 @@
     for(let i=0; i<clips.length; i++){
       if(i < times.length){
         const start = times[i];
-        let end = (i + 1 < times.length) ? times[i+1] : (audioLoaded ? audioDuration : start + 8);
-        if(end <= start) end = start + 5;
-        clips[i].duration = Math.max(0.5, end - start);
+        let end = (i + 1 < times.length) ? times[i+1] : (audioLoaded ? audioDuration : start + 3);
+        if(end <= start) end = start + 0.5;
+        clips[i].duration = Math.max(0.05, end - start);
       }
     }
 
     renderClipList();
-    syncStatus.textContent = `✅ ¡Sincronizado! Se asignaron marcas a ${Math.min(clips.length, times.length)} elementos.`;
+    syncStatus.textContent = `✅ ¡Sincronizado por fracciones! Se asignaron marcas a ${Math.min(clips.length, times.length)} elementos.`;
   }
 
   applyTimesBtn.addEventListener('click', applyTimesFromInput);
 
+  // MANEJO DE MEDIOS (IMÁGENES / VIDEOS)
+  imgDrop.addEventListener('click', ()=> imgInput.click());
+  imgInput.addEventListener('change', e=>{
+    const files = Array.from(e.target.files);
+    files.forEach(f=>{
+      const url = URL.createObjectURL(f);
+      const isVideo = f.type.startsWith('video/');
+      if(isVideo){
+        const video = document.createElement('video');
+        video.src = url; video.muted = true; video.playsInline = true;
+        video.onloadedmetadata = ()=>{
+          clips.push({ id: uid(), name: f.name, type:'video', video, url, duration: video.duration||3, kbStyle:'static', kb: buildKB('static'), filter:'none' });
+          renderClipList();
+        };
+      } else {
+        const img = new Image();
+        img.onload = ()=>{
+          clips.push({ id: uid(), name: f.name, type:'image', img, url, duration: 3, kbStyle:'pan-lr', kb: buildKB('pan-lr'), filter:'none' });
+          renderClipList();
+        };
+        img.src = url;
+      }
+    });
+    imgInput.value = '';
+  });
+
+  replaceInput.addEventListener('change', e=>{
+    const f = e.target.files[0];
+    if(!f || clipToReplaceIndex === null) return;
+    const url = URL.createObjectURL(f);
+    const isVideo = f.type.startsWith('video/');
+    const oldClip = clips[clipToReplaceIndex];
+
+    if(isVideo){
+      const video = document.createElement('video');
+      video.src = url; video.muted = true; video.playsInline = true;
+      video.onloadedmetadata = ()=>{
+        clips[clipToReplaceIndex] = { ...oldClip, name: f.name, type: 'video', video, img: null, url };
+        renderClipList();
+      };
+    } else {
+      const img = new Image();
+      img.onload = ()=>{
+        clips[clipToReplaceIndex] = { ...oldClip, name: f.name, type: 'image', img, video: null, url };
+        renderClipList();
+      };
+      img.src = url;
+    }
+    replaceInput.value = '';
+  });
+
+  sortAscBtn.addEventListener('click', ()=>{
+    clips.sort((a,b) => a.name.localeCompare(b.name, undefined, {numeric: true, sensitivity: 'base'}));
+    renderClipList();
+  });
+
+  sortDescBtn.addEventListener('click', ()=>{
+    clips.sort((a,b) => b.name.localeCompare(a.name, undefined, {numeric: true, sensitivity: 'base'}));
+    renderClipList();
+  });
+
   autoDistBtn.addEventListener('click', ()=>{
     if(clips.length === 0) return;
     const target = audioLoaded ? audioDuration : 60;
-    const per = Math.max(1, target / clips.length);
+    const per = Math.max(0.1, target / clips.length);
     clips.forEach(c => c.duration = per);
     renderClipList();
   });
 
-  clearAllBtn.addEventListener('click', ()=>{
-    clips = [];
-    renderClipList();
-  });
+  clearAllBtn.addEventListener('click', ()=>{ clips = []; renderClipList(); });
 
   applyPatternBtn.addEventListener('click', ()=>{
     if(clips.length === 0) return;
@@ -719,7 +578,7 @@
 
       const topRow = document.createElement('div');
       topRow.style.display = 'flex';
-      topRow.style.justifySpaceBetween = 'space-between';
+      topRow.style.justifyContent = 'space-between';
       topRow.style.alignItems = 'center';
 
       const name = document.createElement('div');
@@ -731,8 +590,8 @@
       ctrlLine.className = 'controls-line';
 
       const durIn = document.createElement('input');
-      durIn.type = 'number'; durIn.value = c.duration.toFixed(1); durIn.step = '0.5'; durIn.min = '0.5';
-      durIn.onchange = e => { c.duration = Math.max(0.5, parseFloat(e.target.value)||1); updateTotals(); };
+      durIn.type = 'number'; durIn.value = c.duration.toFixed(2); durIn.step = '0.1'; durIn.min = '0.05';
+      durIn.onchange = e => { c.duration = Math.max(0.05, parseFloat(e.target.value)||1); updateTotals(); };
 
       const selKB = document.createElement('select');
       selKB.innerHTML = `
@@ -758,13 +617,8 @@
       selFil.onchange = e => { c.filter = e.target.value; drawFrame(currentTime); };
 
       const replaceBtn = document.createElement('button');
-      replaceBtn.className = 'small';
-      replaceBtn.textContent = '🔄 Cambiar';
-      replaceBtn.title = 'Reemplazar este archivo por otra imagen o video';
-      replaceBtn.onclick = () => {
-        clipToReplaceIndex = idx;
-        replaceInput.click();
-      };
+      replaceBtn.className = 'small'; replaceBtn.textContent = '🔄 Cambiar';
+      replaceBtn.onclick = () => { clipToReplaceIndex = idx; replaceInput.click(); };
 
       const delBtn = document.createElement('button');
       delBtn.className = 'small danger'; delBtn.textContent = '✕';
@@ -806,181 +660,105 @@
     return null;
   }
 
-  function drawClip(clip, progress, localTime, targetCtx = ctx){
-    if(!clip) return;
-    const W = targetCtx.canvas.width, H = targetCtx.canvas.height;
+  function drawFrame(t){
+    const info = getClipAtTime(t);
+    const W = canvas.width, H = canvas.height;
+    ctx.clearRect(0,0,W,H);
 
-    let media = clip.type === 'image' ? clip.img : clip.video;
-    let mw = media.videoWidth || media.width || W;
-    let mh = media.videoHeight || media.height || H;
-
-    if(clip.type === 'video' && clip.video){
-      if(Math.abs(clip.video.currentTime - localTime) > 0.3){
-        clip.video.currentTime = localTime % clip.video.duration;
-      }
+    if(!info){
+      ctx.fillStyle = '#000'; ctx.fillRect(0,0,W,H);
+      return;
     }
+
+    const { clip, progress } = info;
+    const media = clip.type === 'image' ? clip.img : clip.video;
+    if(!media) return;
+
+    ctx.save();
+    ctx.filter = FILTER_CSS[clip.filter] || 'none';
 
     const kb = clip.kb || buildKB('static');
     const scale = kb.s0 + (kb.s1 - kb.s0) * progress;
     const cx = kb.x0 + (kb.x1 - kb.x0) * progress;
     const cy = kb.y0 + (kb.y1 - kb.y0) * progress;
 
-    const baseScale = Math.max(W/mw, H/mh);
-    const sw = mw * baseScale * scale;
-    const sh = mh * baseScale * scale;
+    const mw = media.videoWidth || media.width || W;
+    const mh = media.videoHeight || media.height || H;
 
-    const dx = (W - sw) * cx;
-    const dy = (H - sh) * cy;
+    const aspectMedia = mw / mh;
+    const aspectCanvas = W / H;
 
-    targetCtx.save();
-    targetCtx.filter = FILTER_CSS[clip.filter] || 'none';
-    targetCtx.drawImage(media, dx, dy, sw, sh);
-    targetCtx.restore();
-  }
-
-  function drawFrame(t, targetCtx = ctx){
-    const W = targetCtx.canvas.width, H = targetCtx.canvas.height;
-    targetCtx.fillStyle = '#000';
-    targetCtx.fillRect(0, 0, W, H);
-
-    const active = getClipAtTime(t);
-    if(active){
-      drawClip(active.clip, active.progress, active.localTime, targetCtx);
-    }
-  }
-
-  function loop(){
-    if(!playing) return;
-    currentTime = (Date.now() - manualStart) / 1000;
-    const maxT = totalDuration();
-
-    if(currentTime >= maxT){
-      stop();
-      return;
+    let renderW, renderH;
+    if(aspectMedia > aspectCanvas){
+      renderH = H * scale;
+      renderW = renderH * aspectMedia;
+    } else {
+      renderW = W * scale;
+      renderH = renderW / aspectMedia;
     }
 
-    drawFrame(currentTime);
-    trackFill.style.width = (currentTime / maxT * 100) + '%';
-    timeNow.textContent = fmt(currentTime);
+    const x = (W / 2) - (cx * renderW);
+    const y = (H / 2) - (cy * renderH);
 
-    rafId = requestAnimationFrame(loop);
+    ctx.drawImage(media, x, y, renderW, renderH);
+    ctx.restore();
   }
 
-  function play(){
-    if(clips.length === 0 && !audioLoaded) return;
-    playing = true;
-    manualStart = Date.now() - (currentTime * 1000);
-    if(audioLoaded){
-      audioEl.currentTime = currentTime;
-      audioEl.play().catch(()=>{});
-    }
-    playBtn.textContent = '⏸ Pausa';
-    loop();
-  }
-
-  function stop(){
-    playing = false;
-    if(rafId) cancelAnimationFrame(rafId);
-    if(audioLoaded) audioEl.pause();
-    playBtn.textContent = '▶ Reproducir';
-  }
-
+  // CONTROLES DE REPRODUCCIÓN
   playBtn.addEventListener('click', ()=>{
-    if(playing) stop(); else play();
+    if(playing) return;
+    playing = true;
+    if(audioLoaded) audioEl.play();
+    let lastTime = performance.now();
+
+    function loop(now){
+      if(!playing) return;
+      const dt = (now - lastTime) / 1000;
+      lastTime = now;
+
+      if(audioLoaded){
+        currentTime = audioEl.currentTime;
+      } else {
+        currentTime += dt;
+      }
+
+      const dur = totalDuration();
+      if(currentTime >= dur){
+        currentTime = dur;
+        playing = false;
+        if(audioLoaded) audioEl.pause();
+      }
+
+      timeNow.textContent = fmt(currentTime);
+      trackFill.style.width = ((currentTime / dur) * 100) + '%';
+      drawFrame(currentTime);
+
+      if(playing) requestAnimationFrame(loop);
+    }
+    requestAnimationFrame(loop);
   });
 
   stopBtn.addEventListener('click', ()=>{
-    stop();
+    playing = false;
     currentTime = 0;
+    if(audioLoaded){ audioEl.pause(); audioEl.currentTime = 0; }
+    timeNow.textContent = fmt(0);
     trackFill.style.width = '0%';
-    timeNow.textContent = '0:00';
     drawFrame(0);
   });
 
-  track.addEventListener('click', e => {
+  track.addEventListener('click', e=>{
     const rect = track.getBoundingClientRect();
     const ratio = (e.clientX - rect.left) / rect.width;
-    currentTime = ratio * totalDuration();
+    const dur = totalDuration();
+    currentTime = ratio * dur;
     if(audioLoaded) audioEl.currentTime = currentTime;
-    trackFill.style.width = (ratio * 100) + '%';
     timeNow.textContent = fmt(currentTime);
+    trackFill.style.width = (ratio * 100) + '%';
     drawFrame(currentTime);
   });
 
-  // EXPORTACIÓN DE VIDEO
-  exportBtn.addEventListener('click', async ()=>{
-    if(clips.length === 0){
-      exportStatus.textContent = '❌ Agrega al menos una imagen o video para exportar.';
-      return;
-    }
-
-    stop();
-    exportStatus.textContent = '⏳ Preparando motor de renderizado...';
-    exportBtn.disabled = true;
-
-    try {
-      const stream = canvas.captureStream(30);
-      
-      if(audioLoaded){
-        if(!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        if(audioCtx.state === 'suspended') await audioCtx.resume();
-
-        const dest = audioCtx.createMediaStreamDestination();
-        const source = audioCtx.createMediaElementSource(audioEl);
-        source.connect(dest);
-        source.connect(audioCtx.destination);
-
-        const audioTrack = dest.stream.getAudioTracks()[0];
-        if(audioTrack) stream.addTrack(audioTrack);
-      }
-
-      const recorder = new MediaRecorder(stream, { mimeType: 'video/webm;codecs=vp9' });
-      const chunks = [];
-
-      recorder.ondataavailable = e => { if(e.data.size > 0) chunks.push(e.data); };
-      recorder.onstop = ()=>{
-        const blob = new Blob(chunks, { type: 'video/webm' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `AutoClip_Video_${Date.now()}.webm`;
-        a.click();
-        exportStatus.textContent = '✅ ¡Video descargado con éxito!';
-        exportBtn.disabled = false;
-      };
-
-      recorder.start();
-      
-      let renderTime = 0;
-      const totalDur = totalDuration();
-      const fps = 30;
-      const step = 1 / fps;
-
-      if(audioLoaded){
-        audioEl.currentTime = 0;
-        await audioEl.play();
-      }
-
-      const renderInterval = setInterval(()=>{
-        drawFrame(renderTime);
-        exportStatus.textContent = `🎬 Exportando... ${Math.floor((renderTime/totalDur)*100)}%`;
-        renderTime += step;
-
-        if(renderTime >= totalDur){
-          clearInterval(renderInterval);
-          if(audioLoaded) audioEl.pause();
-          recorder.stop();
-        }
-      }, 1000 / fps);
-
-    } catch(err) {
-      console.error(err);
-      exportStatus.textContent = '❌ Error durante la exportación: ' + err.message;
-      exportBtn.disabled = false;
-    }
-  });
-
-  applyCanvasSize();
+  renderClipList();
 })();
 </script>
 </body>
