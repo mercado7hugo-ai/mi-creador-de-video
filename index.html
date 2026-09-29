@@ -62,7 +62,42 @@
   audio{ width:100%; margin-top:6px; }
   .pattern-box{ background:var(--bg); border:1px solid var(--border); padding:10px; border-radius:10px; margin-top:8px; }
 
-  /* ESTILOS DEL GENERADOR POR INTERVALOS FIJOS */
+  /* ESTILOS DEL DETECTOR AUDIO INTELIGENTE */
+  .audio-analysis-box{
+    background: rgba(124, 92, 255, 0.05);
+    border: 1px solid var(--accent);
+    border-radius: 12px;
+    padding: 12px 14px;
+    margin-bottom: 12px;
+  }
+  .audio-analysis-box h3{
+    margin: 0 0 8px 0;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--accent);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .audio-analysis-row{
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    color: var(--muted);
+    margin-bottom: 8px;
+    flex-wrap: wrap;
+  }
+  .audio-analysis-row input[type=number]{
+    width: 60px;
+    padding: 4px 6px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    background: var(--bg);
+    color: var(--text);
+    font-size: 12px;
+  }
+
   .interval-box{
     background: rgba(255, 255, 255, 0.03);
     border: 1px solid var(--border);
@@ -104,7 +139,7 @@
 
 <header>
   <h1>🎬 AutoClip Studio Pro</h1>
-  <p>Sube imágenes, videos y audios largos. Configura movimientos individuales o patrones de animación.</p>
+  <p>Sube imágenes, videos y audios largos con análisis de voz y silencios.</p>
 </header>
 
 <div class="wrap">
@@ -122,7 +157,6 @@
       <h2>2. Medios (Imágenes o Videos)</h2>
       <div class="dropzone" id="imgDrop">🖼️ / 🎥 Sube imágenes o videos</div>
       <input type="file" id="imgInput" accept="image/*,video/*" multiple>
-      <!-- Input oculto para reemplazo individual -->
       <input type="file" id="replaceInput" accept="image/*,video/*">
 
       <div class="row" style="margin-top:10px;">
@@ -136,9 +170,29 @@
     </div>
 
     <div class="card">
-      <h2>3. Sincronización por marcas de tiempo</h2>
+      <h2>3. Detección Inteligente de Audio (Silencios y Tono)</h2>
       
-      <!-- GENERADOR POR INTERVALOS FIJOS -->
+      <!-- DETECTOR AUDIO INTELIGENTE -->
+      <div class="audio-analysis-box">
+        <h3>🧠 Análisis por Pausas y Párrafos Largos</h3>
+        <div class="audio-analysis-row">
+          <span>Umbral silencio:</span>
+          <input type="number" id="silenceThreshold" value="0.02" step="0.01" min="0.001" max="0.1" title="Nivel de volumen mínimo para detectar voz">
+          <span>Duración pausa min:</span>
+          <input type="number" id="minSilenceSec" value="0.3" step="0.1" min="0.1" title="Segundos continuos de silencio para cortar">
+          <span>sec</span>
+        </div>
+        <div class="audio-analysis-row">
+          <span>Max seg por frase:</span>
+          <input type="number" id="maxSegmentSec" value="8" step="1" min="2" title="Si un párrafo supera este tiempo sin pausas, se dividirá en partes iguales">
+          <span>sec (Subdivide párrafos largos)</span>
+        </div>
+        <button id="analyzeAudioBtn" class="primary" style="width:100%; margin-top:6px; padding:10px;">
+          🔍 Analizar Audio y Auto-Sincronizar
+        </button>
+      </div>
+
+      <h2>4. Sincronización por Marcas / Intervalos</h2>
       <div class="interval-box">
         <h3>⚡ Generador por intervalos fijos</h3>
         <div class="interval-row">
@@ -152,21 +206,21 @@
           <input type="number" id="phase2Sec" value="12" min="1">
           <span>seg hasta el final</span>
         </div>
-        <button id="autoGenIntervalsBtn" class="primary" style="width:100%; margin-top:6px; padding:10px;">
-          ⚡ Generar tiempos automáticamente
+        <button id="autoGenIntervalsBtn" style="width:100%; margin-top:4px;">
+          ⚡ Generar tiempos por intervalo
         </button>
       </div>
 
-      <p style="font-size:12px;color:var(--muted);margin:0 0 8px;">Pega los minutos exactos donde cambia cada imagen (un tiempo por línea):</p>
+      <p style="font-size:12px;color:var(--muted);margin:0 0 8px;">Pautas detectadas o manuales (un tiempo por línea):</p>
       <textarea id="timesInput" rows="4" placeholder="0:00&#10;0:10&#10;0:25&#10;0:40" style="width:100%;resize:vertical;padding:8px;border-radius:8px;border:1px solid var(--border);background:var(--bg);color:var(--text);font-size:12px;font-family:monospace;"></textarea>
       <div class="row" style="margin-top:8px;">
-        <button id="applyTimesBtn" class="primary small">✅ Aplicar tiempos a las imágenes</button>
+        <button id="applyTimesBtn" class="primary small">✅ Aplicar tiempos manuales</button>
       </div>
       <div class="status" id="syncStatus"></div>
     </div>
 
     <div class="card">
-      <h2>4. Línea de tiempo y Movimientos <span class="badge" id="clipCount">0 elementos</span></h2>
+      <h2>5. Línea de tiempo y Movimientos <span class="badge" id="clipCount">0 elementos</span></h2>
       <ul id="clipList"></ul>
       <div class="empty-hint" id="emptyHint">Aún no has agregado archivos.</div>
     </div>
@@ -288,6 +342,11 @@
   const phase2SecInput = document.getElementById('phase2Sec');
   const autoGenIntervalsBtn = document.getElementById('autoGenIntervalsBtn');
 
+  const silenceThresholdInput = document.getElementById('silenceThreshold');
+  const minSilenceSecInput = document.getElementById('minSilenceSec');
+  const maxSegmentSecInput = document.getElementById('maxSegmentSec');
+  const analyzeAudioBtn = document.getElementById('analyzeAudioBtn');
+
   const sortAscBtn = document.getElementById('sortAscBtn');
   const sortDescBtn = document.getElementById('sortDescBtn');
 
@@ -317,6 +376,7 @@
   let clips = [];
   let audioLoaded = false;
   let audioDuration = 0;
+  let audioFile = null;
   let playing = false;
   let rafId = null;
   let manualStart = 0;
@@ -371,6 +431,7 @@
   audioInput.addEventListener('change', e=>{
     const f = e.target.files[0];
     if(!f) return;
+    audioFile = f;
     audioEl.src = URL.createObjectURL(f);
     audioEl.style.display = 'block';
     audioEl.onloadedmetadata = ()=>{
@@ -379,6 +440,104 @@
       audioStatus.textContent = '✅ Audio: ' + f.name + ' (' + fmt(audioDuration) + ')';
       updateTotals();
     };
+  });
+
+  // ANALIZADOR DE SILENCIOS, VARIACIÓN DE TONO Y SUBDIVISIÓN UNIFORME
+  analyzeAudioBtn.addEventListener('click', async ()=>{
+    if(!audioFile || !audioLoaded){
+      syncStatus.textContent = '❌ Por favor, sube un archivo de audio primero.';
+      return;
+    }
+
+    syncStatus.textContent = '⏳ Decodificando onda de audio...';
+
+    try {
+      const arrayBuffer = await audioFile.arrayBuffer();
+      const offlineCtx = new (window.OfflineAudioContext || window.webkitOfflineAudioContext)(1, 44100, 44100);
+      const audioBuffer = await offlineCtx.decodeAudioData(arrayBuffer);
+
+      const data = audioBuffer.getChannelData(0);
+      const sampleRate = audioBuffer.sampleRate;
+      const totalSec = audioBuffer.duration;
+
+      const threshold = parseFloat(silenceThresholdInput.value) || 0.02;
+      const minSilenceSec = parseFloat(minSilenceSecInput.value) || 0.3;
+      const maxSegSec = parseFloat(maxSegmentSecInput.value) || 8;
+
+      const minSilenceSamples = Math.floor(minSilenceSec * sampleRate);
+      const stepSamples = Math.floor(0.02 * sampleRate); // Ventanas de 20ms
+
+      let rawPoints = [0];
+      let silentSamplesCount = 0;
+      let inSpeech = false;
+
+      // 1. Detectar transiciones de silencio y cambios repentinos de tono/volumen
+      let prevEnergy = 0;
+      for (let i = 0; i < data.length; i += stepSamples) {
+        let sum = 0;
+        for (let j = 0; j < stepSamples && (i + j) < data.length; j++) {
+          sum += Math.abs(data[i + j]);
+        }
+        let energy = sum / stepSamples;
+        let t = i / sampleRate;
+
+        // Detección de silencios
+        if (energy < threshold) {
+          silentSamplesCount += stepSamples;
+          if (silentSamplesCount >= minSilenceSamples && inSpeech) {
+            inSpeech = false;
+            if (t > 0.5 && t < totalSec - 0.5) rawPoints.push(t);
+          }
+        } else {
+          silentSamplesCount = 0;
+          inSpeech = true;
+        }
+
+        // Detección de cambios bruscos de tono/energía (énfasis de voz)
+        if (inSpeech && prevEnergy > 0) {
+          let energyChange = Math.abs(energy - prevEnergy) / prevEnergy;
+          if (energyChange > 4.5 && t - rawPoints[rawPoints.length - 1] > 2.5) {
+            rawPoints.push(t);
+          }
+        }
+        prevEnergy = energy;
+      }
+
+      // 2. Subdividir párrafos largos uniformemente si superan maxSegSec
+      let points = [];
+      for (let i = 0; i < rawPoints.length; i++) {
+        let current = rawPoints[i];
+        let next = (i + 1 < rawPoints.length) ? rawPoints[i + 1] : totalSec;
+        let duration = next - current;
+
+        points.push(current);
+
+        if (duration > maxSegSec) {
+          let parts = Math.ceil(duration / maxSegSec);
+          let subInterval = duration / parts;
+          for (let p = 1; p < parts; p++) {
+            points.push(current + (p * subInterval));
+          }
+        }
+      }
+
+      // Eliminar duplicados y ordenar
+      points = Array.from(new Set(points.map(p => Number(p.toFixed(2))))).sort((a,b)=>a-b);
+
+      const timeStrings = points.map(s => fmt(s));
+      timesInput.value = timeStrings.join('\n');
+
+      if(clips.length > 0){
+        applyTimesFromInput();
+        syncStatus.textContent = `⚡ ¡Detección completada! Se crearon ${points.length} puntos de corte adaptados al habla.`;
+      } else {
+        syncStatus.textContent = `⚡ ¡Detección completada! ${points.length} puntos generados. Sube imágenes para aplicar.`;
+      }
+
+    } catch (err) {
+      console.error(err);
+      syncStatus.textContent = '❌ Error al analizar el audio: ' + err.message;
+    }
   });
 
   // Img Drop
@@ -598,7 +757,6 @@
       `;
       selFil.onchange = e => { c.filter = e.target.value; drawFrame(currentTime); };
 
-      // Botón para reemplazar imagen
       const replaceBtn = document.createElement('button');
       replaceBtn.className = 'small';
       replaceBtn.textContent = '🔄 Cambiar';
@@ -763,7 +921,6 @@
     try {
       const stream = canvas.captureStream(30);
       
-      // Integrar audio mediante AudioContext
       if(audioLoaded){
         if(!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
         if(audioCtx.state === 'suspended') await audioCtx.resume();
@@ -771,7 +928,7 @@
         const dest = audioCtx.createMediaStreamDestination();
         const source = audioCtx.createMediaElementSource(audioEl);
         source.connect(dest);
-        source.connect(audioCtx.destination); // Para que también suene en altavoces si se desea
+        source.connect(audioCtx.destination);
 
         const audioTrack = dest.stream.getAudioTracks()[0];
         if(audioTrack) stream.addTrack(audioTrack);
