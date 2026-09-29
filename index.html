@@ -60,9 +60,8 @@
   .status{ font-size:12px; color:var(--muted); min-height:16px; margin-top:6px; }
   .badge{ font-size:10px; padding:2px 7px; border-radius:20px; background:var(--border); color:var(--muted); font-weight:700; }
   audio{ width:100%; margin-top:6px; }
-  .pattern-box{ background:var(--bg); border:1px solid var(--border); padding:10px; border-radius:10px; margin-top:8px; }
 
-  /* ESTILOS DE SEGMENTACIÓN POR FRACCIONES */
+  /* PANEL DE FRACCIONES */
   .fraction-box{
     background: rgba(124, 92, 255, 0.05);
     border: 1px solid var(--accent);
@@ -71,40 +70,49 @@
     margin-bottom: 12px;
   }
   .fraction-box h3{
-    margin: 0 0 10px 0;
-    font-size: 13px;
-    font-weight: 600;
-    color: var(--accent);
-    display: flex;
-    align-items: center;
-    gap: 6px;
+    margin: 0 0 10px 0; font-size: 13px; font-weight: 600; color: var(--accent);
+    display: flex; align-items: center; gap: 6px;
   }
   .fraction-row{
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 8px;
-    font-size: 12px;
-    color: var(--muted);
-    margin-bottom: 10px;
-    flex-wrap: wrap;
+    display: flex; align-items: center; justify-content: space-between; gap: 8px;
+    font-size: 12px; color: var(--muted); margin-bottom: 10px; flex-wrap: wrap;
   }
   .fraction-row label{ font-weight: 600; color: var(--text); }
   .fraction-row input[type=number], .fraction-row select{
-    padding: 6px 8px;
-    border-radius: 6px;
-    border: 1px solid var(--border);
-    background: var(--bg);
-    color: var(--text);
-    font-size: 12px;
+    padding: 6px 8px; border-radius: 6px; border: 1px solid var(--border);
+    background: var(--bg); color: var(--text); font-size: 12px;
   }
+
+  /* ESTILOS DE MOVIMIENTOS DE CÁMARA (CHECKBOXES) */
+  .checkbox-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+    gap: 8px;
+    margin: 10px 0;
+  }
+  .checkbox-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    padding: 8px 10px;
+    border-radius: 8px;
+    font-size: 12px;
+    cursor: pointer;
+    user-select: none;
+  }
+  .checkbox-btn input { cursor: pointer; }
+  .slider-container { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+  .slider-container input[type=range] { flex: 1; accent-color: var(--accent); }
+  .info-note { font-size: 12px; color: var(--muted); margin-top: 6px; line-height: 1.4; }
 </style>
 </head>
 <body>
 
 <header>
   <h1>🎬 AutoClip Studio Pro</h1>
-  <p>Corte por fracciones de segundo y sincronización para audios extensos.</p>
+  <p>Corte por fracciones de segundo y movimientos de cámara dinámicos.</p>
 </header>
 
 <div class="wrap">
@@ -112,7 +120,7 @@
   <div class="col">
     <div class="card">
       <h2>1. Narración / Audio (Hasta 1 Hora)</h2>
-      <div class="dropzone" id="audioDrop">🎙️️ Haz clic para subir audio (mp3, wav, m4a, aac)</div>
+      <div class="dropzone" id="audioDrop">🎙 Haz clic para subir audio (mp3, wav, m4a, aac)</div>
       <input type="file" id="audioInput" accept="audio/*">
       <audio id="audioEl" controls style="display:none;"></audio>
       <div class="status" id="audioStatus">Sin audio cargado.</div>
@@ -177,7 +185,7 @@
         </button>
       </div>
 
-      <p style="font-size:12px;color:var(--muted);margin:0 0 8px;">Marcas de tiempo generadas (un tiempo por línea):</p>
+      <p style="font-size:12px;color:var(--muted);margin:0 0 8px;">Marcas de tiempo generadas:</p>
       <textarea id="timesInput" rows="4" placeholder="0:00&#10;0:00.5&#10;0:01.0" style="width:100%;resize:vertical;padding:8px;border-radius:8px;border:1px solid var(--border);background:var(--bg);color:var(--text);font-size:12px;font-family:monospace;"></textarea>
       <div class="row" style="margin-top:8px;">
         <button id="applyTimesBtn" class="primary small">✅ Aplicar marcas manuales</button>
@@ -194,18 +202,57 @@
 
   <!-- COLUMNA DERECHA -->
   <div class="col">
+    <!-- FORMATO Y CALIDAD -->
     <div class="card">
-      <h2>Formato y Calidad</h2>
+      <h2>Formato y calidad</h2>
       <div class="row">
-        <select id="aspectSelect">
+        <select id="aspectSelect" style="flex:1;">
           <option value="16:9">16:9 — Horizontal (YouTube)</option>
-          <option value="9:16">9:16 — Vertical (TikTok/Reels)</option>
-          <option value="1:1">1:1 — Cuadrado (Instagram)</option>
+          <option value="9:16">9:16 — Vertical (Reels/TikTok/Shorts)</option>
+          <option value="1:1">1:1 — Cuadrado (Instagram feed)</option>
+          <option value="4:3">4:3 — Clásico horizontal</option>
+          <option value="3:4">3:4 — Vertical clásico</option>
         </select>
-        <select id="qualitySelect">
-          <option value="720p">720p</option>
-          <option value="1080p" selected>1080p Full HD</option>
+        <select id="qualitySelect" style="flex:1;">
+          <option value="720p">720p (HD)</option>
+          <option value="1080p" selected>1080p (Full HD)</option>
+          <option value="4K">4K (Ultra HD)</option>
         </select>
+      </div>
+      <div class="info-note">
+        4K se ve mejor pero pide mucho al equipo: recomendado solo en computadora potente. En celular usa 1080p para que no se trabe.
+      </div>
+    </div>
+
+    <!-- ZOOM / MOVIMIENTO DE CÁMARA -->
+    <div class="card">
+      <h2>Zoom / movimiento de cámara</h2>
+      <div style="font-size:12px; color:var(--muted); margin-bottom:6px;">Intensidad</div>
+      <div class="slider-container">
+        <input type="range" id="zoomIntensity" min="0.05" max="0.5" step="0.01" value="0.18">
+      </div>
+
+      <div style="font-size:12px; color:var(--muted); margin-bottom:8px;">
+        Elige 1, 2 o 3 movimientos: se irán repitiendo en ese orden a lo largo de todas las imágenes (ej: imagen 1 = primero, imagen 2 = segundo, imagen 3 = tercero, imagen 4 = primero otra vez...).
+      </div>
+
+      <div class="checkbox-grid">
+        <label class="checkbox-btn"><input type="checkbox" class="mov-check" value="random"> 🎲 Aleatorio</label>
+        <label class="checkbox-btn"><input type="checkbox" class="mov-check" value="in" checked> 🔍 + Acercar</label>
+        <label class="checkbox-btn"><input type="checkbox" class="mov-check" value="out" checked> 🔍 - Alejar</label>
+        <label class="checkbox-btn"><input type="checkbox" class="mov-check" value="pan-lr" checked> ➔ Paneo derecha</label>
+        <label class="checkbox-btn"><input type="checkbox" class="mov-check" value="pan-rl"> ⬅ Paneo izquierda</label>
+        <label class="checkbox-btn"><input type="checkbox" class="mov-check" value="pan-du"> ⬇ Paneo abajo</label>
+        <label class="checkbox-btn"><input type="checkbox" class="mov-check" value="pan-ud"> ⬆ Paneo arriba</label>
+        <label class="checkbox-btn"><input type="checkbox" class="mov-check" value="static"> ⏹ Estático</label>
+      </div>
+
+      <button id="applyCycleBtn" class="primary" style="width:100%; margin-top:8px;">
+        🔄 Aplicar en ciclo a todas las imágenes
+      </button>
+
+      <div class="info-note" style="margin-top:10px;">
+        También puedes elegir el estilo de zoom individualmente en cada imagen de la línea de tiempo.
       </div>
     </div>
 
@@ -219,32 +266,6 @@
       <div class="row" style="margin-top:8px;">
         <button id="playBtn" class="primary">▶ Reproducir</button>
         <button id="stopBtn">⏹ Detener</button>
-      </div>
-    </div>
-
-    <div class="card">
-      <h2>Patrón rápido de 3 Movimientos</h2>
-      <div class="pattern-box">
-        <p style="font-size:12px;margin:0 0 6px;">Aplica automáticamente una secuencia de 3 movimientos intercalados:</p>
-        <div class="row" style="gap:4px;margin-bottom:8px;">
-          <select id="mov1" style="flex:1;">
-            <option value="in">1. Zoom In</option>
-            <option value="out">1. Zoom Out</option>
-            <option value="pan-lr" selected>1. Paneo Der</option>
-            <option value="pan-rl">1. Paneo Izq</option>
-          </select>
-          <select id="mov2" style="flex:1;">
-            <option value="in" selected>2. Zoom In</option>
-            <option value="out">2. Zoom Out</option>
-            <option value="pan-lr">2. Paneo Der</option>
-          </select>
-          <select id="mov3" style="flex:1;">
-            <option value="out" selected>3. Zoom Out</option>
-            <option value="pan-lr">3. Paneo Der</option>
-            <option value="pan-du">3. Paneo Abajo</option>
-          </select>
-        </div>
-        <button id="applyPatternBtn" class="small primary" style="width:100%;">🔄 Aplicar secuencia a todas las imágenes</button>
       </div>
     </div>
 
@@ -300,8 +321,6 @@
   const applyTimesBtn = document.getElementById('applyTimesBtn');
   const timesInput = document.getElementById('timesInput');
   const syncStatus = document.getElementById('syncStatus');
-  const exportBtn = document.getElementById('exportBtn');
-  const exportStatus = document.getElementById('exportStatus');
 
   const phase1Fraction = document.getElementById('phase1Fraction');
   const customP1 = document.getElementById('customP1');
@@ -312,10 +331,8 @@
   const sortAscBtn = document.getElementById('sortAscBtn');
   const sortDescBtn = document.getElementById('sortDescBtn');
 
-  const mov1 = document.getElementById('mov1');
-  const mov2 = document.getElementById('mov2');
-  const mov3 = document.getElementById('mov3');
-  const applyPatternBtn = document.getElementById('applyPatternBtn');
+  const zoomIntensity = document.getElementById('zoomIntensity');
+  const applyCycleBtn = document.getElementById('applyCycleBtn');
   const globalFilterSelect = document.getElementById('globalFilterSelect');
   const applyGlobalFilterBtn = document.getElementById('applyGlobalFilterBtn');
 
@@ -330,29 +347,31 @@
   };
 
   const RES = {
-    '16:9': {'720p':[1280,720], '1080p':[1920,1080]},
-    '9:16': {'720p':[720,1280], '1080p':[1080,1920]},
-    '1:1':  {'720p':[720,720],  '1080p':[1080,1080]}
+    '16:9': {'720p':[1280,720], '1080p':[1920,1080], '4K':[3840,2160]},
+    '9:16': {'720p':[720,1280], '1080p':[1080,1920], '4K':[2160,3840]},
+    '1:1':  {'720p':[720,720],   '1080p':[1080,1080], '4K':[2160,2160]},
+    '4:3':  {'720p':[960,720],   '1080p':[1440,1080], '4K':[2880,2160]},
+    '3:4':  {'720p':[720,960],   '1080p':[1080,1440], '4K':[2160,2880]}
   };
 
   let clips = [];
   let audioLoaded = false;
   let audioDuration = 0;
-  let audioFile = null;
   let playing = false;
   let currentTime = 0;
   let clipToReplaceIndex = null;
 
   function uid(){ return Math.random().toString(36).slice(2,9); }
 
-  function buildKB(style){
-    const intensity = 0.18;
+  function buildKB(style, customIntensity){
+    const intensity = customIntensity || parseFloat(zoomIntensity.value) || 0.18;
     switch(style){
       case 'in': return {s0:1, s1:1+intensity*1.6, x0:0.5, y0:0.5, x1:0.5, y1:0.5};
       case 'out': return {s0:1+intensity*1.6, s1:1, x0:0.5, y0:0.5, x1:0.5, y1:0.5};
       case 'pan-lr': return {s0:1+intensity, s1:1+intensity, x0:0.2, y0:0.5, x1:0.8, y1:0.5};
       case 'pan-rl': return {s0:1+intensity, s1:1+intensity, x0:0.8, y0:0.5, x1:0.2, y1:0.5};
       case 'pan-du': return {s0:1+intensity, s1:1+intensity, x0:0.5, y0:0.2, x1:0.5, y1:0.8};
+      case 'pan-ud': return {s0:1+intensity, s1:1+intensity, x0:0.5, y0:0.8, x1:0.5, y1:0.2};
       case 'static': default: return {s0:1, s1:1, x0:0.5, y0:0.5, x1:0.5, y1:0.5};
     }
   }
@@ -369,14 +388,27 @@
 
   function parseTimeToSeconds(str){
     if(!str) return null;
-    const clean = str.trim();
-    const parts = clean.split(':').map(Number);
+    const parts = str.trim().split(':').map(Number);
     if(parts.length === 2) return (parts[0] * 60) + parts[1];
     if(parts.length === 1 && !isNaN(parts[0])) return parts[0];
     return null;
   }
 
-  // EVENTOS PARA INPUTS PERSONALIZADOS DE FRACCIONES
+  // ACTUALIZACIÓN DE RESOLUCIÓN Y LÍMITES
+  function updateResolution(){
+    const aspect = aspectSelect.value;
+    const qual = qualitySelect.value;
+    const [w, h] = RES[aspect][qual];
+    canvas.width = w;
+    canvas.height = h;
+    previewBox.style.aspectRatio = (w/h);
+    drawFrame(currentTime);
+  }
+
+  aspectSelect.addEventListener('change', updateResolution);
+  qualitySelect.addEventListener('change', updateResolution);
+
+  // EVENTOS PARA INPUTS PERSONALIZADOS
   phase1Fraction.addEventListener('change', () => {
     customP1.style.display = phase1Fraction.value === 'custom' ? 'inline-block' : 'none';
   });
@@ -384,16 +416,13 @@
     customP2.style.display = phase2Fraction.value === 'custom' ? 'inline-block' : 'none';
   });
 
-  // DECODIFICACIÓN EXACTA CON WEB AUDIO API (RESUELVE DESFASE 26:28 VS 24:12 EN ACC/M4A)
+  // DECODIFICACIÓN DE AUDIO
   audioDrop.addEventListener('click', ()=> audioInput.click());
   audioInput.addEventListener('change', async e => {
     const f = e.target.files[0];
     if(!f) return;
-    audioFile = f;
-    audioStatus.textContent = '⏳ Decodificando duración exacta del audio...';
-    
-    const objectUrl = URL.createObjectURL(f);
-    audioEl.src = objectUrl;
+    audioStatus.textContent = '⏳ Decodificando duración exacta...';
+    audioEl.src = URL.createObjectURL(f);
 
     try {
       const buffer = await f.arrayBuffer();
@@ -402,12 +431,11 @@
       const decodedData = await tempCtx.decodeAudioData(buffer);
       
       audioLoaded = true;
-      audioDuration = decodedData.duration; // Obtenemos la duración real matemáticamente exacta
+      audioDuration = decodedData.duration;
       audioStatus.textContent = '✅ Audio: ' + f.name + ' (' + fmt(audioDuration) + ')';
       tempCtx.close();
       updateTotals();
     } catch(err) {
-      // Fallback a HTML5 Audio si falla la decodificación directa
       audioEl.onloadedmetadata = ()=>{
         audioLoaded = true;
         audioDuration = audioEl.duration;
@@ -417,7 +445,7 @@
     }
   });
 
-  // GENERACIÓN PROGRESIVA POR FRACCIONES DE SEGUNDO
+  // GENERAR Y APLICAR FRACCIONES
   generateFractionsBtn.addEventListener('click', ()=>{
     let p1Sec = phase1Fraction.value === 'custom' ? parseFloat(customP1.value) : parseFloat(phase1Fraction.value);
     let p2Sec = phase2Fraction.value === 'custom' ? parseFloat(customP2.value) : parseFloat(phase2Fraction.value);
@@ -425,8 +453,8 @@
     if(!p1Sec || p1Sec <= 0) p1Sec = 0.5;
     if(!p2Sec || p2Sec <= 0) p2Sec = 3.0;
 
-    const cutoffSec = 180.0; // 3 minutos exactamente
-    const maxDur = audioLoaded ? audioDuration : 1800; // Por defecto 30 min si no hay audio
+    const cutoffSec = 180.0;
+    const maxDur = audioLoaded ? audioDuration : 1800;
 
     let timeList = [0];
     let currentSec = 0;
@@ -438,22 +466,13 @@
       timeList.push(Number(currentSec.toFixed(2)));
     }
 
-    const lines = timeList.map(s => fmt(s));
-    timesInput.value = lines.join('\n');
-
+    timesInput.value = timeList.map(s => fmt(s)).join('\n');
     applyTimesFromInput();
   });
 
   function applyTimesFromInput(){
     const lines = timesInput.value.split('\n').map(l=>l.trim()).filter(l=>l!=='');
-    if(lines.length === 0){
-      syncStatus.textContent = '❌ Escribe o genera al menos una marca de tiempo.';
-      return;
-    }
-    if(clips.length === 0){
-      syncStatus.textContent = '❌ Primero agrega imágenes o videos.';
-      return;
-    }
+    if(lines.length === 0 || clips.length === 0) return;
 
     const times = lines.map(parseTimeToSeconds).filter(t => t !== null && !isNaN(t));
 
@@ -467,19 +486,41 @@
     }
 
     renderClipList();
-    syncStatus.textContent = `✅ ¡Sincronizado por fracciones! Se asignaron marcas a ${Math.min(clips.length, times.length)} elementos.`;
+    syncStatus.textContent = `✅ Sincronizados ${Math.min(clips.length, times.length)} elementos.`;
   }
 
   applyTimesBtn.addEventListener('click', applyTimesFromInput);
 
-  // MANEJO DE MEDIOS (IMÁGENES / VIDEOS)
+  // APLICAR MOVIMIENTOS EN CICLO
+  applyCycleBtn.addEventListener('click', ()=>{
+    if(clips.length === 0) return;
+    const checked = Array.from(document.querySelectorAll('.mov-check:checked')).map(cb => cb.value);
+    
+    if(checked.length === 0){
+      alert('Selecciona al menos 1 movimiento de cámara.');
+      return;
+    }
+
+    const availableStyles = ['in', 'out', 'pan-lr', 'pan-rl', 'pan-du', 'pan-ud'];
+
+    clips.forEach((c, idx) => {
+      let selectedStyle = checked[idx % checked.length];
+      if(selectedStyle === 'random'){
+        selectedStyle = availableStyles[Math.floor(Math.random() * availableStyles.length)];
+      }
+      c.kbStyle = selectedStyle;
+      c.kb = buildKB(selectedStyle);
+    });
+
+    renderClipList();
+  });
+
+  // GESTIÓN DE ELEMENTOS
   imgDrop.addEventListener('click', ()=> imgInput.click());
   imgInput.addEventListener('change', e=>{
-    const files = Array.from(e.target.files);
-    files.forEach(f=>{
+    Array.from(e.target.files).forEach(f=>{
       const url = URL.createObjectURL(f);
-      const isVideo = f.type.startsWith('video/');
-      if(isVideo){
+      if(f.type.startsWith('video/')){
         const video = document.createElement('video');
         video.src = url; video.muted = true; video.playsInline = true;
         video.onloadedmetadata = ()=>{
@@ -502,10 +543,9 @@
     const f = e.target.files[0];
     if(!f || clipToReplaceIndex === null) return;
     const url = URL.createObjectURL(f);
-    const isVideo = f.type.startsWith('video/');
     const oldClip = clips[clipToReplaceIndex];
 
-    if(isVideo){
+    if(f.type.startsWith('video/')){
       const video = document.createElement('video');
       video.src = url; video.muted = true; video.playsInline = true;
       video.onloadedmetadata = ()=>{
@@ -543,17 +583,6 @@
 
   clearAllBtn.addEventListener('click', ()=>{ clips = []; renderClipList(); });
 
-  applyPatternBtn.addEventListener('click', ()=>{
-    if(clips.length === 0) return;
-    const seq = [mov1.value, mov2.value, mov3.value];
-    clips.forEach((c, idx) => {
-      const style = seq[idx % 3];
-      c.kbStyle = style;
-      c.kb = buildKB(style);
-    });
-    renderClipList();
-  });
-
   applyGlobalFilterBtn.addEventListener('click', ()=>{
     const val = globalFilterSelect.value;
     clips.forEach(c => c.filter = val);
@@ -577,13 +606,10 @@
       meta.className = 'meta';
 
       const topRow = document.createElement('div');
-      topRow.style.display = 'flex';
-      topRow.style.justifyContent = 'space-between';
-      topRow.style.alignItems = 'center';
+      topRow.style.display = 'flex'; topRow.style.justifyContent = 'space-between';
 
       const name = document.createElement('div');
-      name.className = 'name';
-      name.textContent = `${idx + 1}. ${c.name}`;
+      name.className = 'name'; name.textContent = `${idx + 1}. ${c.name}`;
       topRow.appendChild(name);
 
       const ctrlLine = document.createElement('div');
@@ -597,9 +623,10 @@
       selKB.innerHTML = `
         <option value="pan-lr" ${c.kbStyle==='pan-lr'?'selected':''}>Paneo Der</option>
         <option value="pan-rl" ${c.kbStyle==='pan-rl'?'selected':''}>Paneo Izq</option>
+        <option value="pan-du" ${c.kbStyle==='pan-du'?'selected':''}>Paneo Abajo</option>
+        <option value="pan-ud" ${c.kbStyle==='pan-ud'?'selected':''}>Paneo Arriba</option>
         <option value="in" ${c.kbStyle==='in'?'selected':''}>Zoom In</option>
         <option value="out" ${c.kbStyle==='out'?'selected':''}>Zoom Out</option>
-        <option value="pan-du" ${c.kbStyle==='pan-du'?'selected':''}>Paneo Abajo</option>
         <option value="static" ${c.kbStyle==='static'?'selected':''}>Estático</option>
       `;
       selKB.onchange = e => { c.kbStyle = e.target.value; c.kb = buildKB(c.kbStyle); drawFrame(currentTime); };
@@ -653,7 +680,7 @@
     for(let i=0; i<clips.length; i++){
       const dur = clips[i].duration;
       if(t >= acc && t < acc + dur){
-        return { clip: clips[i], progress: (t - acc)/dur, index: i, localTime: t - acc };
+        return { clip: clips[i], progress: (t - acc)/dur };
       }
       acc += dur;
     }
@@ -684,17 +711,14 @@
 
     const mw = media.videoWidth || media.width || W;
     const mh = media.videoHeight || media.height || H;
-
     const aspectMedia = mw / mh;
     const aspectCanvas = W / H;
 
     let renderW, renderH;
     if(aspectMedia > aspectCanvas){
-      renderH = H * scale;
-      renderW = renderH * aspectMedia;
+      renderH = H * scale; renderW = renderH * aspectMedia;
     } else {
-      renderW = W * scale;
-      renderH = renderW / aspectMedia;
+      renderW = W * scale; renderH = renderW / aspectMedia;
     }
 
     const x = (W / 2) - (cx * renderW);
@@ -758,6 +782,7 @@
     drawFrame(currentTime);
   });
 
+  updateResolution();
   renderClipList();
 })();
 </script>
