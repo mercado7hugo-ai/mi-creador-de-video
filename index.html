@@ -49,7 +49,7 @@
   .clip .meta .name{ font-size:12px; color:var(--muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   .clip .meta .script-hint{ font-size:11px; color:var(--accent); font-style:italic; background:rgba(124,92,255,0.08); padding:4px 8px; border-radius:6px; line-height: 1.3; }
   .clip .controls-line{ display:flex; gap:6px; align-items:center; flex-wrap:wrap; }
-  .clip input[type=number], input[type=number]{ padding:4px 6px; border-radius:6px; border:1px solid var(--border); background:var(--panel); color:var(--text); font-size:12px; }
+  .clip input[type=number], input[type=number]{ padding:4px 6px; border-radius:6px; border:1px solid var(--border); background:var(--panel); color:var(--text); font-size:12px; width:70px; }
   .clip select, select{ padding:6px 8px; border-radius:6px; border:1px solid var(--border); background:var(--panel); color:var(--text); font-size:12px; }
   .empty-hint{ color:var(--muted); font-size:12px; text-align:center; padding:10px; }
   .previewBox{ background:#000; border-radius:12px; overflow:hidden; position:relative; aspect-ratio:16/9; }
@@ -58,23 +58,21 @@
   /* LÍNEA DE TIEMPO VISUAL E INTERACTIVA */
   .timeline-container { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 10px; margin-top: 10px; position: relative; }
   .waveform-box { width: 100%; height: 50px; background: #111; border-radius: 6px; display: block; margin-bottom: 6px; }
-  .track-timeline { height: 36px; background: rgba(124, 92, 255, 0.08); border: 1px solid var(--border); border-radius: 6px; position: relative; overflow-x: auto; overflow-y: hidden; cursor: crosshair; }
+  .track-timeline { height: 36px; background: rgba(124, 92, 255, 0.08); border: 1px solid var(--border); border-radius: 6px; position: relative; overflow-x: auto; overflow-y: hidden; }
   .timeline-block { position: absolute; top: 2px; bottom: 2px; background: var(--accent); opacity: 0.85; border-radius: 4px; border: 1px solid #fff; display: flex; align-items: center; justify-content: space-between; padding: 0 6px; color: #fff; font-size: 10px; font-weight: bold; white-space: nowrap; overflow: hidden; cursor: grab; user-select: none; }
   .timeline-block:hover { opacity: 1; }
-  .timeline-block .handle { width: 6px; height: 100%; background: rgba(255,255,255,0.5); position: absolute; top: 0; cursor: ew-resize; }
+  .timeline-block .handle { width: 8px; height: 100%; background: rgba(255,255,255,0.7); position: absolute; top: 0; cursor: ew-resize; }
   .timeline-block .handle.right { right: 0; }
 
   .playbar{ margin-top:10px; }
-  .track{ height:6px; background:var(--border); border-radius:4px; position:relative; cursor:pointer; margin:8px 0; }
+  .track{ height:8px; background:var(--border); border-radius:4px; position:relative; cursor:pointer; margin:8px 0; }
   .track .fill{ position:absolute; left:0; top:0; height:100%; background:var(--accent); border-radius:4px; width:0%; }
   .timecodes{ display:flex; justify-content:space-between; font-size:11px; color:var(--muted); }
   .status{ font-size:12px; color:var(--muted); min-height:16px; margin-top:6px; }
   .badge{ font-size:10px; padding:2px 7px; border-radius:20px; background:var(--border); color:var(--muted); font-weight:700; }
-  audio{ width:100%; margin-top:6px; }
 
   .checkbox-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 8px; margin: 10px 0; }
   .checkbox-btn { display: flex; align-items: center; gap: 6px; background: var(--bg); border: 1px solid var(--border); padding: 8px 10px; border-radius: 8px; font-size: 12px; cursor: pointer; user-select: none; }
-  .checkbox-btn input { cursor: pointer; }
   .slider-container { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
   .slider-container input[type=range] { flex: 1; accent-color: var(--accent); }
   .info-note { font-size: 12px; color: var(--muted); margin-top: 6px; line-height: 1.4; }
@@ -84,21 +82,23 @@
 
 <header>
   <h1>🎬 AutoClip Studio Pro</h1>
-  <p>Corte por fracciones de segundo y sincronización inteligente por guion de visuales.</p>
+  <p>Sincronización por IA y control de tiempo manual cuadro por cuadro.</p>
 </header>
 
 <div class="wrap">
   <!-- COLUMNA IZQUIERDA -->
   <div class="col">
+    <!-- PANEL 1: AUDIO -->
     <div class="card">
-      <h2>1. Narración / Audio (Hasta 1 Hora)</h2>
+      <h2>1. Narración / Audio</h2>
       <div class="dropzone" id="audioDrop">🎙 Haz clic para subir audio (mp3, wav, m4a, aac)</div>
       <input type="file" id="audioInput" accept="audio/*">
       <audio id="audioEl" controls style="display:none;"></audio>
       <div class="status" id="audioStatus">Sin audio cargado.</div>
-      <button id="autoSyncAudioBtn" class="primary small" style="display:none; width:100%; margin-top:8px;">✨ Generar Guion Visual con IA Automáticamente</button>
+      <button id="autoSyncAudioBtn" class="primary small" style="display:none; width:100%; margin-top:8px;">✨ Analizar Audio con Gemini IA (GRATIS)</button>
     </div>
 
+    <!-- PANEL 2: MEDIOS -->
     <div class="card">
       <h2>2. Medios (Imágenes o Videos)</h2>
       <div class="dropzone" id="imgDrop">🖼 / 🎥 Sube imágenes o videos</div>
@@ -106,24 +106,22 @@
       <input type="file" id="replaceInput" accept="image/*,video/*">
 
       <div class="row" style="margin-top:10px;">
-        <button id="autoDistBtn" class="small">⏱ Repartir por igual</button>
+        <button id="autoDistBtn" class="small">⏱ Repartir equitativamente</button>
         <button id="clearAllBtn" class="small danger">Vaciar lista</button>
       </div>
       <div class="row" style="margin-top:8px;">
-        <button id="sortAscBtn" class="small">🔢 Ordenar 1 ➔ 9 (Ascendente)</button>
-        <button id="sortDescBtn" class="small">🔢 Ordenar 9 ➔ 1 (Descendente)</button>
+        <button id="sortAscBtn" class="small">🔢 Ordenar Ascendente</button>
+        <button id="sortDescBtn" class="small">🔢 Ordenar Descendente</button>
       </div>
     </div>
 
-    <!-- PANEL 3: IMPORTAR GUION DE VISUALES -->
+    <!-- PANEL 3: GUION Y TIMING MANUAL -->
     <div class="card">
-      <h2>3. Sincronizar por Guion de Visuales <span class="badge">Avanzado</span></h2>
-      
+      <h2>3. Sincronización por Guion / Tiempos <span class="badge">Avanzado</span></h2>
       <div class="info-note" style="margin-bottom:8px;">
-        Pega tu bloque de guion (compatible con tablas Markdown o líneas con formato <code>| Tiempo | Narración | Visual |</code>):
+        Ingresa o modifica libremente los tiempos en formato Markdown <code>| Tiempo | Narración | Visual |</code>:
       </div>
-
-      <textarea id="scriptInput" rows="6" placeholder="| 1 | 0:00–0:07 | Imagina que despiertas... | Aldea de Galilea antes del amanecer... |" style="width:100%;resize:vertical;padding:8px;border-radius:8px;border:1px solid var(--border);background:var(--bg);color:var(--text);font-size:12px;font-family:monospace;"></textarea>
+      <textarea id="scriptInput" rows="6" placeholder="| 0:00 | Texto hablado... | Descripción de la escena... |" style="width:100%;resize:vertical;padding:8px;border-radius:8px;border:1px solid var(--border);background:var(--bg);color:var(--text);font-size:12px;font-family:monospace;"></textarea>
       
       <div class="row" style="margin-top:8px;">
         <button id="applyScriptBtn" class="primary small" style="width:100%;">📑 Leer Guion y Organizar Tiempos/Visuales</button>
@@ -131,10 +129,10 @@
       <div class="status" id="syncStatus"></div>
     </div>
 
+    <!-- PANEL 4: LÍNEA DE TIEMPO Y EDICIÓN -->
     <div class="card">
-      <h2>4. Línea de tiempo y Movimientos <span class="badge" id="clipCount">0 elementos</span></h2>
+      <h2>4. Línea de tiempo y Control Manual <span class="badge" id="clipCount">0 elementos</span></h2>
       
-      <!-- PISTA VISUAL DE AUDIO Y CLIPS -->
       <div class="timeline-container">
         <canvas id="waveformCanvas" class="waveform-box"></canvas>
         <div class="track-timeline" id="trackTimeline"></div>
@@ -147,52 +145,34 @@
 
   <!-- COLUMNA DERECHA -->
   <div class="col">
-    <!-- FORMATO Y CALIDAD -->
     <div class="card">
-      <h2>Formato y calidad</h2>
+      <h2>Formato y Calidad</h2>
       <div class="row">
         <select id="aspectSelect" style="flex:1;">
           <option value="16:9">16:9 — Horizontal (YouTube)</option>
           <option value="9:16">9:16 — Vertical (Reels/TikTok/Shorts)</option>
-          <option value="1:1">1:1 — Cuadrado (Instagram feed)</option>
-          <option value="4:3">4:3 — Clásico horizontal</option>
-          <option value="3:4">3:4 — Vertical clásico</option>
+          <option value="1:1">1:1 — Cuadrado (Instagram)</option>
         </select>
         <select id="qualitySelect" style="flex:1;">
           <option value="720p">720p (HD)</option>
           <option value="1080p" selected>1080p (Full HD)</option>
-          <option value="4K">4K (Ultra HD)</option>
         </select>
       </div>
     </div>
 
-    <!-- ZOOM / MOVIMIENTO DE CÁMARA Y SUAVIZADO -->
     <div class="card">
-      <h2>Zoom / movimiento de cámara</h2>
-      <div style="font-size:12px; color:var(--muted); margin-bottom:4px;">Intensidad del Zoom</div>
+      <h2>Movimiento de Cámara (Ken Burns)</h2>
+      <div style="font-size:12px; color:var(--muted); margin-bottom:4px;">Intensidad de Zoom</div>
       <div class="slider-container">
         <input type="range" id="zoomIntensity" min="0.05" max="0.5" step="0.01" value="0.18">
       </div>
-
-      <div style="font-size:12px; color:var(--muted); margin-bottom:4px;">Suavizado / Velocidad de Movimiento</div>
-      <div class="slider-container">
-        <input type="range" id="zoomSmoothness" min="0" max="1" step="0.05" value="0.5">
-      </div>
-
       <div class="checkbox-grid">
-        <label class="checkbox-btn"><input type="checkbox" class="mov-check" value="random"> 🎲 Aleatorio</label>
-        <label class="checkbox-btn"><input type="checkbox" class="mov-check" value="in" checked> 🔍 + Acercar</label>
-        <label class="checkbox-btn"><input type="checkbox" class="mov-check" value="out" checked> 🔍 - Alejar</label>
-        <label class="checkbox-btn"><input type="checkbox" class="mov-check" value="pan-lr" checked> ➔ Paneo derecha</label>
-        <label class="checkbox-btn"><input type="checkbox" class="mov-check" value="pan-rl"> ⬅ Paneo izquierda</label>
-        <label class="checkbox-btn"><input type="checkbox" class="mov-check" value="pan-du"> ⬇ Paneo abajo</label>
-        <label class="checkbox-btn"><input type="checkbox" class="mov-check" value="pan-ud"> ⬆ Paneo arriba</label>
-        <label class="checkbox-btn"><input type="checkbox" class="mov-check" value="static"> ⏹ Estático</label>
+        <label class="checkbox-btn"><input type="checkbox" class="mov-check" value="in" checked> 🔍 Acercar</label>
+        <label class="checkbox-btn"><input type="checkbox" class="mov-check" value="out" checked> 🔍 Alejar</label>
+        <label class="checkbox-btn"><input type="checkbox" class="mov-check" value="pan-lr" checked> ➔ Paneo Der</label>
+        <label class="checkbox-btn"><input type="checkbox" class="mov-check" value="pan-rl"> ⬅ Paneo Izq</label>
       </div>
-
-      <button id="applyCycleBtn" class="primary" style="width:100%; margin-top:8px;">
-        🔄 Aplicar en ciclo a todas las imágenes
-      </button>
+      <button id="applyCycleBtn" class="primary" style="width:100%; margin-top:8px;">🔄 Aplicar movimientos a todas las imágenes</button>
     </div>
 
     <div class="card">
@@ -209,25 +189,17 @@
     </div>
 
     <div class="card">
-      <h2>Filtro de Color Global</h2>
+      <h2>Filtro de Color</h2>
       <div class="row">
         <select id="globalFilterSelect" style="flex:1;">
-          <option value="none">🎨 Sin filtro</option>
-          <option value="vintage">📜 Vintage / Retro</option>
+          <option value="none">🎨 Normal</option>
+          <option value="vintage">📜 Vintage</option>
           <option value="vivid">✨ Vívido</option>
-          <option value="warm">🔥 Cálido</option>
-          <option value="cool">❄️ Frío</option>
           <option value="bw">⚫ Blanco y Negro</option>
           <option value="sepia">🟤 Sepia</option>
         </select>
         <button id="applyGlobalFilterBtn" class="small">Aplicar a todo</button>
       </div>
-    </div>
-
-    <div class="card">
-      <h2>Exportación de Video</h2>
-      <button id="exportBtn" class="primary" style="width:100%;padding:12px;">⬇ Generar y Descargar Video</button>
-      <div class="status" id="exportStatus"></div>
     </div>
   </div>
 </div>
@@ -261,13 +233,10 @@
   const scriptInput = document.getElementById('scriptInput');
   const applyScriptBtn = document.getElementById('applyScriptBtn');
   const syncStatus = document.getElementById('syncStatus');
-
   const zoomIntensity = document.getElementById('zoomIntensity');
-  const zoomSmoothness = document.getElementById('zoomSmoothness');
   const applyCycleBtn = document.getElementById('applyCycleBtn');
   const globalFilterSelect = document.getElementById('globalFilterSelect');
   const applyGlobalFilterBtn = document.getElementById('applyGlobalFilterBtn');
-
   const waveformCanvas = document.getElementById('waveformCanvas');
   const trackTimeline = document.getElementById('trackTimeline');
 
@@ -277,21 +246,20 @@
   let audioBufferData = null;
   let playing = false;
   let currentTime = 0;
+  let animId = null;
   let clipToReplaceIndex = null;
   let currentAudioFile = null;
 
   function uid(){ return Math.random().toString(36).slice(2,9); }
 
-  function buildKB(style, customIntensity){
-    const intensity = customIntensity || parseFloat(zoomIntensity.value) || 0.18;
+  function buildKB(style){
+    const intensity = parseFloat(zoomIntensity.value) || 0.18;
     switch(style){
       case 'in': return {s0:1, s1:1+intensity*1.6, x0:0.5, y0:0.5, x1:0.5, y1:0.5};
       case 'out': return {s0:1+intensity*1.6, s1:1, x0:0.5, y0:0.5, x1:0.5, y1:0.5};
       case 'pan-lr': return {s0:1+intensity, s1:1+intensity, x0:0.2, y0:0.5, x1:0.8, y1:0.5};
       case 'pan-rl': return {s0:1+intensity, s1:1+intensity, x0:0.8, y0:0.5, x1:0.2, y1:0.5};
-      case 'pan-du': return {s0:1+intensity, s1:1+intensity, x0:0.5, y0:0.2, x1:0.5, y1:0.8};
-      case 'pan-ud': return {s0:1+intensity, s1:1+intensity, x0:0.5, y0:0.8, x1:0.5, y1:0.2};
-      case 'static': default: return {s0:1, s1:1, x0:0.5, y0:0.5, x1:0.5, y1:0.5};
+      default: return {s0:1, s1:1, x0:0.5, y0:0.5, x1:0.5, y1:0.5};
     }
   }
 
@@ -301,8 +269,7 @@
   function fmt(t){
     if(!isFinite(t)) t = 0;
     const m = Math.floor(t/60), s = (t%60).toFixed(1);
-    const sStr = parseFloat(s) < 10 ? '0' + s : s;
-    return m + ':' + sStr;
+    return m + ':' + (parseFloat(s) < 10 ? '0' + s : s);
   }
 
   function parseTimestampToSeconds(tsStr){
@@ -316,54 +283,38 @@
 
   function updateResolution(){
     const aspect = aspectSelect.value;
-    const qual = qualitySelect.value;
     const RES_MAP = {
-      '16:9': {'720p':[1280,720], '1080p':[1920,1080], '4K':[3840,2160]},
-      '9:16': {'720p':[720,1280], '1080p':[1080,1920], '4K':[2160,3840]},
-      '1:1':  {'720p':[720,720],   '1080p':[1080,1080], '4K':[2160,2160]},
-      '4:3':  {'720p':[960,720],   '1080p':[1440,1080], '4K':[2880,2160]},
-      '3:4':  {'720p':[720,960],   '1080p':[1080,1440], '4K':[2160,2880]}
+      '16:9': [1920, 1080],
+      '9:16': [1080, 1920],
+      '1:1': [1080, 1080]
     };
-    const [w, h] = RES_MAP[aspect][qual];
-    canvas.width = w;
-    canvas.height = h;
+    const [w, h] = RES_MAP[aspect] || [1920, 1080];
+    canvas.width = w; canvas.height = h;
     previewBox.style.aspectRatio = (w/h);
     drawFrame(currentTime);
   }
 
   aspectSelect.addEventListener('change', updateResolution);
-  qualitySelect.addEventListener('change', updateResolution);
 
   function renderWaveform(buffer) {
     if(!buffer) return;
     const wCtx = waveformCanvas.getContext('2d');
     const width = waveformCanvas.width = waveformCanvas.offsetWidth * window.devicePixelRatio;
     const height = waveformCanvas.height = waveformCanvas.offsetHeight * window.devicePixelRatio;
-    
     wCtx.clearRect(0, 0, width, height);
     const rawData = buffer.getChannelData(0);
-    const samples = 300;
+    const samples = 250;
     const blockSz = Math.floor(rawData.length / samples);
-    const filteredData = [];
-
-    for (let i = 0; i < samples; i++) {
-      let blockStart = blockSz * i;
-      let sum = 0;
-      for (let j = 0; j < blockSz; j++) {
-        sum += Math.abs(rawData[blockStart + j]);
-      }
-      filteredData.push(sum / blockSz);
-    }
-
-    const maxVal = Math.max(...filteredData) || 1;
-    const multiplier = height / maxVal;
     wCtx.fillStyle = '#7c5cff';
     const barWidth = width / samples;
 
-    filteredData.forEach((val, i) => {
-      const barHeight = Math.max(2, val * multiplier);
+    for (let i = 0; i < samples; i++) {
+      let sum = 0;
+      for (let j = 0; j < blockSz; j++) sum += Math.abs(rawData[blockSz * i + j]);
+      const val = sum / blockSz;
+      const barHeight = Math.max(2, val * height * 2);
       wCtx.fillRect(i * barWidth, (height - barHeight) / 2, barWidth - 1, barHeight);
-    });
+    }
   }
 
   audioDrop.addEventListener('click', ()=> audioInput.click());
@@ -372,8 +323,7 @@
     if(!f) return;
     currentAudioFile = f;
     autoSyncAudioBtn.style.display = 'block';
-
-    audioStatus.textContent = '⏳ Decodificando duración exacta...';
+    audioStatus.textContent = '⏳ Cargando audio...';
     audioEl.src = URL.createObjectURL(f);
 
     try {
@@ -381,7 +331,6 @@
       const ctxClass = window.AudioContext || window.webkitAudioContext;
       const tempCtx = new ctxClass();
       const decodedData = await tempCtx.decodeAudioData(buffer);
-      
       audioLoaded = true;
       audioDuration = decodedData.duration;
       audioBufferData = decodedData;
@@ -399,91 +348,63 @@
     }
   });
 
-  // --- LÓGICA DE INTELIGENCIA ARTIFICIAL CON OPENAI ---
+  // INTELIGENCIA ARTIFICIAL DE GOOGLE GEMINI (GRATUITO)
   autoSyncAudioBtn.addEventListener('click', async () => {
-    if (!currentAudioFile) {
-      alert('Por favor, primero sube un archivo de audio.');
-      return;
-    }
+    if (!currentAudioFile) return;
 
-    let apiKey = localStorage.getItem('openai_api_key');
+    let apiKey = localStorage.getItem('gemini_api_key');
     if (!apiKey) {
-      apiKey = prompt('Por favor, ingresa tu API Key de OpenAI (empieza por sk-...):');
+      apiKey = prompt('Por favor, ingresa tu API Key GRATUITA de Google Gemini (aistudio.google.com):');
       if (apiKey && apiKey.trim() !== '') {
-        localStorage.setItem('openai_api_key', apiKey.trim());
-      } else {
-        return;
-      }
+        localStorage.setItem('gemini_api_key', apiKey.trim());
+      } else return;
     }
 
-    autoSyncAudioBtn.textContent = '⏳ Escuchando y transcribiendo audio...';
+    autoSyncAudioBtn.textContent = '⏳ Procesando voz con Gemini IA...';
     autoSyncAudioBtn.disabled = true;
 
     try {
-      // 1. Transcripción con Whisper
-      const formData = new FormData();
-      formData.append('file', currentAudioFile);
-      formData.append('model', 'whisper-1');
-      formData.append('response_format', 'verbose_json');
-      formData.append('timestamp_granularities[]', 'segment');
+      const reader = new FileReader();
+      reader.readAsDataURL(currentAudioFile);
+      reader.onload = async () => {
+        const base64Audio = reader.result.split(',')[1];
+        
+        const promptText = "Escucha este audio. Transcríbelo y divídelo en bloques lógicos de 3 a 6 segundos. Devuelve ÚNICAMENTE una tabla en Markdown con este formato exacto:\n| Tiempo | Narración | Visual |\n\nEjemplo:\n| 0:00 | Texto de la voz... | Imagen sugerida... |";
 
-      const whisperRes = await fetch('https://api.openai.com/v1/audio/transcriptions', {
-        method: 'POST',
-        headers: { 'Authorization': 'Bearer ' + apiKey },
-        body: formData
-      });
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents: [{
+              parts: [
+                { inlineData: { mimeType: currentAudioFile.type || "audio/mp3", data: base64Audio } },
+                { text: promptText }
+              ]
+            }]
+          })
+        });
 
-      const whisperData = await whisperRes.json();
-      if (whisperData.error) throw new Error(whisperData.error.message);
+        const data = await response.json();
+        if (data.error) throw new Error(data.error.message);
 
-      // 2. Extraer tiempos
-      const segmentsText = whisperData.segments.map(seg => 
-        `[${seg.start.toFixed(1)}s - ${seg.end.toFixed(1)}s]: ${seg.text}`
-      ).join('\n');
-
-      autoSyncAudioBtn.textContent = '🧠 Diseñando escena por escena...';
-
-      // 3. Generar tabla con GPT-4o
-      const promptText = "Eres un director de arte de video. Agrupa esta transcripción en bloques lógicos de 3 a 7 segundos. Devuelve ÚNICAMENTE una tabla en formato Markdown con la estructura exacta:\n| Tiempo | Narración | Visual |\n\nTranscripción con tiempos:\n" + segmentsText;
-
-      const gptRes = await fetch('https://api.openai.com/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer ' + apiKey
-        },
-        body: JSON.stringify({
-          model: 'gpt-4o',
-          messages: [{ role: 'user', content: promptText }]
-        })
-      });
-
-      const gptData = await gptRes.json();
-      if (gptData.error) throw new Error(gptData.error.message);
-
-      // 4. Inyectar tabla y sincronizar
-      scriptInput.value = gptData.choices[0].message.content;
-      applyScriptBtn.click();
-
-      autoSyncAudioBtn.textContent = '✅ ¡Sincronización Completada!';
+        const aiText = data.candidates[0].content.parts[0].text;
+        scriptInput.value = aiText;
+        applyScriptBtn.click();
+        autoSyncAudioBtn.textContent = '✅ Sincronización Completada';
+        autoSyncAudioBtn.disabled = false;
+      };
     } catch (err) {
-      alert("Error con la Inteligencia Artificial: " + err.message);
-      if(err.message.includes('API key') || err.message.includes('incorrect')) {
-        localStorage.removeItem('openai_api_key');
-      }
-      autoSyncAudioBtn.textContent = '✨ Generar Guion Visual con IA Automáticamente';
-    } finally {
+      alert("Error con Gemini IA: " + err.message);
+      localStorage.removeItem('gemini_api_key');
+      autoSyncAudioBtn.textContent = '✨ Analizar Audio con Gemini IA (GRATIS)';
       autoSyncAudioBtn.disabled = false;
     }
   });
 
-  // PARSER DE TABLAS DE GUION
+  // APLICAR GUION MANUAL O AUTOMÁTICO
   applyScriptBtn.addEventListener('click', ()=>{
     const rawText = scriptInput.value.trim();
-    if(!rawText){
-      syncStatus.textContent = '❌ El cuadro de guion está vacío.';
-      return;
-    }
+    if(!rawText){ syncStatus.textContent = '❌ El texto está vacío.'; return; }
 
     const lines = rawText.split('\n').map(l=>l.trim()).filter(l=>l!=='');
     let parsedEntries = [];
@@ -493,33 +414,22 @@
 
       if(line.includes('|')){
         const cols = line.split('|').map(c => c.trim()).filter(c => c !== '');
-        if(cols.length >= 3){
+        if(cols.length >= 2){
           for(let col of cols){
             if(col.includes(':') || col.match(/^\d+$/)){
               const timeParts = col.split('–')[0].split('-');
               const startSec = parseTimestampToSeconds(timeParts[0]);
-              
-              const textCols = cols.filter(c => c !== col && !c.match(/^\d+$/) && !c.includes(':'));
-              const narration = textCols[0] || '';
-              const visualDesc = textCols[1] || '';
-
-              parsedEntries.push({ time: startSec, narration, visualDesc });
+              const textCols = cols.filter(c => c !== col);
+              parsedEntries.push({ time: startSec, narration: textCols[0]||'', visualDesc: textCols[1]||'' });
               break;
             }
           }
-        }
-      } else {
-        const timeMatch = line.match(/(\d+:\d+|\d+)/);
-        if(timeMatch){
-          const startSec = parseTimestampToSeconds(timeMatch[0]);
-          let cleanText = line.replace(timeMatch[0], '').trim();
-          parsedEntries.push({ time: startSec, narration: cleanText, visualDesc: '' });
         }
       }
     });
 
     if(parsedEntries.length === 0){
-      syncStatus.textContent = '❌ No se pudieron interpretar los tiempos del guion.';
+      syncStatus.textContent = '❌ No se detectaron tiempos de formato 0:00.';
       return;
     }
 
@@ -528,15 +438,15 @@
     for(let i=0; i<clips.length; i++){
       if(i < parsedEntries.length){
         const start = parsedEntries[i].time;
-        let end = (i + 1 < parsedEntries.length) ? parsedEntries[i+1].time : (audioLoaded ? audioDuration : start + 7.5);
-        if(end <= start) end = start + 5;
-        clips[i].duration = Math.max(0.05, end - start);
+        let end = (i + 1 < parsedEntries.length) ? parsedEntries[i+1].time : (audioLoaded ? audioDuration : start + 5);
+        if(end <= start) end = start + 4;
+        clips[i].duration = Math.max(0.1, end - start);
         clips[i].scriptHint = `💬 ${parsedEntries[i].narration} | 🖼️ ${parsedEntries[i].visualDesc}`;
       }
     }
 
     renderClipList();
-    syncStatus.textContent = `✅ Guion aplicado: ${Math.min(clips.length, parsedEntries.length)} visuales sincronizadas.`;
+    syncStatus.textContent = `✅ Sincronizados ${Math.min(clips.length, parsedEntries.length)} elementos.`;
   });
 
   function renderTimelineVisual() {
@@ -549,7 +459,7 @@
 
     clips.forEach((c, idx) => {
       const leftPx = (accTime / totalDur) * trackWidth;
-      const widthPx = Math.max(25, (c.duration / totalDur) * trackWidth);
+      const widthPx = Math.max(20, (c.duration / totalDur) * trackWidth);
 
       const block = document.createElement('div');
       block.className = 'timeline-block';
@@ -586,30 +496,13 @@
     });
   }
 
-  applyCycleBtn.addEventListener('click', ()=>{
-    if(clips.length === 0) return;
-    const checked = Array.from(document.querySelectorAll('.mov-check:checked')).map(cb => cb.value);
-    if(checked.length === 0){ alert('Selecciona al menos 1 movimiento.'); return; }
-    const availableStyles = ['in', 'out', 'pan-lr', 'pan-rl', 'pan-du', 'pan-ud'];
-
-    clips.forEach((c, idx) => {
-      let selectedStyle = checked[idx % checked.length];
-      if(selectedStyle === 'random'){
-        selectedStyle = availableStyles[Math.floor(Math.random() * availableStyles.length)];
-      }
-      c.kbStyle = selectedStyle;
-      c.kb = buildKB(selectedStyle);
-    });
-    renderClipList();
-  });
-
   imgDrop.addEventListener('click', ()=> imgInput.click());
   imgInput.addEventListener('change', e=>{
     Array.from(e.target.files).forEach(f=>{
       const url = URL.createObjectURL(f);
       if(f.type.startsWith('video/')){
         const video = document.createElement('video');
-        video.src = url; video.muted = true; video.playsInline = true;
+        video.src = url; video.muted = true;
         video.onloadedmetadata = ()=>{
           clips.push({ id: uid(), name: f.name, type:'video', video, url, duration: video.duration||3, kbStyle:'static', kb: buildKB('static'), filter:'none', scriptHint:'' });
           renderClipList();
@@ -634,7 +527,7 @@
 
     if(f.type.startsWith('video/')){
       const video = document.createElement('video');
-      video.src = url; video.muted = true; video.playsInline = true;
+      video.src = url; video.muted = true;
       video.onloadedmetadata = ()=>{
         clips[clipToReplaceIndex] = { ...oldClip, name: f.name, type: 'video', video, img: null, url };
         renderClipList();
@@ -651,19 +544,18 @@
   });
 
   document.getElementById('sortAscBtn').addEventListener('click', ()=>{
-    clips.sort((a,b) => a.name.localeCompare(b.name, undefined, {numeric: true, sensitivity: 'base'}));
+    clips.sort((a,b) => a.name.localeCompare(b.name, undefined, {numeric: true}));
     renderClipList();
   });
 
   document.getElementById('sortDescBtn').addEventListener('click', ()=>{
-    clips.sort((a,b) => b.name.localeCompare(a.name, undefined, {numeric: true, sensitivity: 'base'}));
+    clips.sort((a,b) => b.name.localeCompare(a.name, undefined, {numeric: true}));
     renderClipList();
   });
 
   autoDistBtn.addEventListener('click', ()=>{
     if(clips.length === 0) return;
-    const target = audioLoaded ? audioDuration : 60;
-    const per = Math.max(0.1, target / clips.length);
+    const per = Math.max(0.1, (audioLoaded ? audioDuration : 30) / clips.length);
     clips.forEach(c => c.duration = per);
     renderClipList();
   });
@@ -673,6 +565,17 @@
   applyGlobalFilterBtn.addEventListener('click', ()=>{
     const val = globalFilterSelect.value;
     clips.forEach(c => c.filter = val);
+    renderClipList();
+  });
+
+  applyCycleBtn.addEventListener('click', ()=>{
+    const checked = Array.from(document.querySelectorAll('.mov-check:checked')).map(cb => cb.value);
+    if(checked.length === 0) return;
+    clips.forEach((c, idx) => {
+      const style = checked[idx % checked.length];
+      c.kbStyle = style;
+      c.kb = buildKB(style);
+    });
     renderClipList();
   });
 
@@ -692,12 +595,9 @@
       const meta = document.createElement('div');
       meta.className = 'meta';
 
-      const topRow = document.createElement('div');
-      topRow.style.display = 'flex'; topRow.style.justifyContent = 'space-between';
-
       const name = document.createElement('div');
       name.className = 'name'; name.textContent = `${idx + 1}. ${c.name}`;
-      topRow.appendChild(name);
+      meta.appendChild(name);
 
       if(c.scriptHint){
         const hintDiv = document.createElement('div');
@@ -709,33 +609,20 @@
       const ctrlLine = document.createElement('div');
       ctrlLine.className = 'controls-line';
 
+      // EDICIÓN MANUAL DE TIEMPO
       const durIn = document.createElement('input');
-      durIn.type = 'number'; durIn.value = c.duration.toFixed(2); durIn.step = '0.1'; durIn.min = '0.05';
-      durIn.onchange = e => { c.duration = Math.max(0.05, parseFloat(e.target.value)||1); updateTotals(); };
+      durIn.type = 'number'; durIn.value = c.duration.toFixed(2); durIn.step = '0.1'; durIn.min = '0.1';
+      durIn.onchange = e => { c.duration = Math.max(0.1, parseFloat(e.target.value)||1); updateTotals(); };
 
       const selKB = document.createElement('select');
       selKB.innerHTML = `
         <option value="pan-lr" ${c.kbStyle==='pan-lr'?'selected':''}>Paneo Der</option>
         <option value="pan-rl" ${c.kbStyle==='pan-rl'?'selected':''}>Paneo Izq</option>
-        <option value="pan-du" ${c.kbStyle==='pan-du'?'selected':''}>Paneo Abajo</option>
-        <option value="pan-ud" ${c.kbStyle==='pan-ud'?'selected':''}>Paneo Arriba</option>
         <option value="in" ${c.kbStyle==='in'?'selected':''}>Zoom In</option>
         <option value="out" ${c.kbStyle==='out'?'selected':''}>Zoom Out</option>
         <option value="static" ${c.kbStyle==='static'?'selected':''}>Estático</option>
       `;
       selKB.onchange = e => { c.kbStyle = e.target.value; c.kb = buildKB(c.kbStyle); drawFrame(currentTime); };
-
-      const selFil = document.createElement('select');
-      selFil.innerHTML = `
-        <option value="none" ${c.filter==='none'?'selected':''}>🎨 Normal</option>
-        <option value="vintage" ${c.filter==='vintage'?'selected':''}>📜 Vintage</option>
-        <option value="vivid" ${c.filter==='vivid'?'selected':''}>✨ Vívido</option>
-        <option value="warm" ${c.filter==='warm'?'selected':''}>🔥 Cálido</option>
-        <option value="cool" ${c.filter==='cool'?'selected':''}>❄️ Frío</option>
-        <option value="bw" ${c.filter==='bw'?'selected':''}>⚫ B/N</option>
-        <option value="sepia" ${c.filter==='sepia'?'selected':''}>🟤 Sepia</option>
-      `;
-      selFil.onchange = e => { c.filter = e.target.value; drawFrame(currentTime); };
 
       const replaceBtn = document.createElement('button');
       replaceBtn.className = 'small'; replaceBtn.textContent = '🔄 Cambiar';
@@ -748,13 +635,10 @@
       ctrlLine.appendChild(document.createTextNode('Seg:'));
       ctrlLine.appendChild(durIn);
       ctrlLine.appendChild(selKB);
-      ctrlLine.appendChild(selFil);
       ctrlLine.appendChild(replaceBtn);
       ctrlLine.appendChild(delBtn);
 
-      meta.appendChild(topRow);
       meta.appendChild(ctrlLine);
-
       li.appendChild(thumb);
       li.appendChild(meta);
       clipList.appendChild(li);
@@ -764,8 +648,7 @@
   }
 
   function updateTotals(){
-    const t = totalDuration();
-    timeTotal.textContent = fmt(t);
+    timeTotal.textContent = fmt(totalDuration());
     renderTimelineVisual();
     if(!playing) drawFrame(currentTime);
   }
@@ -788,44 +671,91 @@
     if(!item) return;
 
     const { clip, progress } = item;
-    const easedProgress = applyEasing(progress, parseFloat(zoomSmoothness.value)||0.5);
-
     ctx.save();
     
-    // Aplicar Filtros
-    if(clip.filter === 'vintage') ctx.filter = 'sepia(0.4) contrast(1.1) brightness(0.9)';
-    else if(clip.filter === 'vivid') ctx.filter = 'saturate(1.6) contrast(1.1)';
-    else if(clip.filter === 'warm') ctx.filter = 'sepia(0.2) saturate(1.3)';
-    else if(clip.filter === 'cool') ctx.filter = 'hue-rotate(180deg) saturate(0.8)';
+    if(clip.filter === 'vintage') ctx.filter = 'sepia(0.4) contrast(1.1)';
+    else if(clip.filter === 'vivid') ctx.filter = 'saturate(1.6)';
     else if(clip.filter === 'bw') ctx.filter = 'grayscale(1)';
     else if(clip.filter === 'sepia') ctx.filter = 'sepia(1)';
 
-    const scale = clip.kb.s0 + (clip.kb.s1 - clip.kb.s0) * easedProgress;
-    const cx = clip.kb.x0 + (clip.kb.x1 - clip.kb.x0) * easedProgress;
-    const cy = clip.kb.y0 + (clip.kb.y1 - clip.kb.y0) * easedProgress;
+    const scale = clip.kb.s0 + (clip.kb.s1 - clip.kb.s0) * progress;
+    const cx = clip.kb.x0 + (clip.kb.x1 - clip.kb.x0) * progress;
+    const cy = clip.kb.y0 + (clip.kb.y1 - clip.kb.y0) * progress;
 
-    const w = canvas.width;
-    const h = canvas.height;
-
+    const w = canvas.width, h = canvas.height;
     ctx.translate(w * cx, h * cy);
     ctx.scale(scale, scale);
     ctx.translate(-w * cx, -h * cy);
 
-    if(clip.type === 'image' && clip.img){
-      ctx.drawImage(clip.img, 0, 0, w, h);
-    } else if(clip.type === 'video' && clip.video){
+    if(clip.type === 'image' && clip.img) ctx.drawImage(clip.img, 0, 0, w, h);
+    else if(clip.type === 'video' && clip.video){
       clip.video.currentTime = (progress * clip.duration) % clip.video.duration;
       ctx.drawImage(clip.video, 0, 0, w, h);
     }
     ctx.restore();
   }
 
-  function applyEasing(p, factor) {
-    if (factor <= 0) return p;
-    const eased = p < 0.5 ? 2 * p * p : 1 - (Math.pow(-2 * p + 2, 2) / 2);
-    return p + (eased - p) * factor;
-  }
+  // CONTROLES DE REPRODUCCIÓN
+  playBtn.addEventListener('click', ()=>{
+    if(playing){
+      playing = false;
+      playBtn.textContent = '▶ Reproducir';
+      if(audioLoaded) audioEl.pause();
+      if(animId) cancelAnimationFrame(animId);
+    } else {
+      playing = true;
+      playBtn.textContent = '⏸ Pausar';
+      if(audioLoaded){
+        audioEl.currentTime = currentTime;
+        audioEl.play();
+      }
+      let lastTime = performance.now();
+      function loop(now){
+        if(!playing) return;
+        const dt = (now - lastTime) / 1000;
+        lastTime = now;
+        
+        if(audioLoaded) currentTime = audioEl.currentTime;
+        else currentTime += dt;
 
+        if(currentTime >= totalDuration()){
+          currentTime = 0;
+          playing = false;
+          playBtn.textContent = '▶ Reproducir';
+          if(audioLoaded) audioEl.pause();
+          return;
+        }
+
+        trackFill.style.width = ((currentTime / totalDuration()) * 100) + '%';
+        timeNow.textContent = fmt(currentTime);
+        drawFrame(currentTime);
+        animId = requestAnimationFrame(loop);
+      }
+      animId = requestAnimationFrame(loop);
+    }
+  });
+
+  stopBtn.addEventListener('click', ()=>{
+    playing = false;
+    playBtn.textContent = '▶ Reproducir';
+    if(audioLoaded) audioEl.pause();
+    currentTime = 0;
+    trackFill.style.width = '0%';
+    timeNow.textContent = fmt(0);
+    drawFrame(0);
+  });
+
+  track.addEventListener('click', e => {
+    const rect = track.getBoundingClientRect();
+    const pos = (e.clientX - rect.left) / rect.width;
+    currentTime = pos * totalDuration();
+    if(audioLoaded) audioEl.currentTime = currentTime;
+    trackFill.style.width = (pos * 100) + '%';
+    timeNow.textContent = fmt(currentTime);
+    drawFrame(currentTime);
+  });
+
+  updateResolution();
 })();
 </script>
 </body>
