@@ -55,6 +55,7 @@
   .previewBox{ background:#000; border-radius:12px; overflow:hidden; position:relative; aspect-ratio:16/9; }
   canvas{ width:100%; height:100%; display:block; }
   
+  /* LÍNEA DE TIEMPO VISUAL E INTERACTIVA */
   .timeline-container { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 10px; margin-top: 10px; position: relative; }
   .waveform-box { width: 100%; height: 50px; background: #111; border-radius: 6px; display: block; margin-bottom: 6px; }
   .track-timeline { height: 36px; background: rgba(124, 92, 255, 0.08); border: 1px solid var(--border); border-radius: 6px; position: relative; overflow-x: auto; overflow-y: hidden; cursor: crosshair; }
@@ -83,10 +84,11 @@
 
 <header>
   <h1>🎬 AutoClip Studio Pro</h1>
-  <p>Sincronización exacta por guion de visuales con tiempos automáticos.</p>
+  <p>Corte por fracciones de segundo y sincronización inteligente por guion de visuales.</p>
 </header>
 
 <div class="wrap">
+  <!-- COLUMNA IZQUIERDA -->
   <div class="col">
     <div class="card">
       <h2>1. Narración / Audio (Hasta 1 Hora)</h2>
@@ -94,11 +96,12 @@
       <input type="file" id="audioInput" accept="audio/*">
       <audio id="audioEl" controls style="display:none;"></audio>
       <div class="status" id="audioStatus">Sin audio cargado.</div>
+      <button id="autoSyncAudioBtn" class="primary small" style="display:none; width:100%; margin-top:8px;">✨ Generar Guion Visual con IA Automáticamente</button>
     </div>
 
     <div class="card">
       <h2>2. Medios (Imágenes o Videos)</h2>
-      <div class="dropzone" id="imgDrop">🖼 / 🎥 Sube tus imágenes</div>
+      <div class="dropzone" id="imgDrop">🖼 / 🎥 Sube imágenes o videos</div>
       <input type="file" id="imgInput" accept="image/*,video/*" multiple>
       <input type="file" id="replaceInput" accept="image/*,video/*">
 
@@ -112,36 +115,39 @@
       </div>
     </div>
 
-    <!-- PANEL 3: SUBIR O PEGAR GUION DE VISUALES -->
+    <!-- PANEL 3: IMPORTAR GUION DE VISUALES -->
     <div class="card">
-      <h2>3. Sincronizar por Guion de Visuales <span class="badge">Automático</span></h2>
+      <h2>3. Sincronizar por Guion de Visuales <span class="badge">Avanzado</span></h2>
       
-      <div class="dropzone" id="scriptFileDrop" style="margin-bottom:10px; padding:12px;">
-        📄 Sube tu archivo de guion (.md o .txt)[cite: 1]
+      <div class="info-note" style="margin-bottom:8px;">
+        Pega tu bloque de guion (compatible con tablas Markdown o líneas con formato <code>| Tiempo | Narración | Visual |</code>):
       </div>
-      <input type="file" id="scriptFileInput" accept=".md,.txt">
 
-      <div class="info-note" style="margin-bottom:6px;">O pega las filas de tu tabla Markdown aquí:</div>
-      <textarea id="scriptInput" rows="5" placeholder="| 1 | 0:00–0:07 | Imagina que despiertas... | Aldea de Galilea antes del amanecer... |" style="width:100%;resize:vertical;padding:8px;border-radius:8px;border:1px solid var(--border);background:var(--bg);color:var(--text);font-size:12px;font-family:monospace;"></textarea>
+      <textarea id="scriptInput" rows="6" placeholder="| 1 | 0:00–0:07 | Imagina que despiertas... | Aldea de Galilea antes del amanecer... |" style="width:100%;resize:vertical;padding:8px;border-radius:8px;border:1px solid var(--border);background:var(--bg);color:var(--text);font-size:12px;font-family:monospace;"></textarea>
       
       <div class="row" style="margin-top:8px;">
-        <button id="applyScriptBtn" class="primary small" style="width:100%;">📑 Leer Guion, Asignar Tiempos y Ordenar Imágenes</button>
+        <button id="applyScriptBtn" class="primary small" style="width:100%;">📑 Leer Guion y Organizar Tiempos/Visuales</button>
       </div>
       <div class="status" id="syncStatus"></div>
     </div>
 
     <div class="card">
       <h2>4. Línea de tiempo y Movimientos <span class="badge" id="clipCount">0 elementos</span></h2>
+      
+      <!-- PISTA VISUAL DE AUDIO Y CLIPS -->
       <div class="timeline-container">
         <canvas id="waveformCanvas" class="waveform-box"></canvas>
         <div class="track-timeline" id="trackTimeline"></div>
       </div>
+
       <ul id="clipList" style="margin-top:10px;"></ul>
       <div class="empty-hint" id="emptyHint">Aún no has agregado archivos.</div>
     </div>
   </div>
 
+  <!-- COLUMNA DERECHA -->
   <div class="col">
+    <!-- FORMATO Y CALIDAD -->
     <div class="card">
       <h2>Formato y calidad</h2>
       <div class="row">
@@ -160,6 +166,7 @@
       </div>
     </div>
 
+    <!-- ZOOM / MOVIMIENTO DE CÁMARA Y SUAVIZADO -->
     <div class="card">
       <h2>Zoom / movimiento de cámara</h2>
       <div style="font-size:12px; color:var(--muted); margin-bottom:4px;">Intensidad del Zoom</div>
@@ -233,6 +240,7 @@
   const audioInput = document.getElementById('audioInput');
   const audioDrop = document.getElementById('audioDrop');
   const audioStatus = document.getElementById('audioStatus');
+  const autoSyncAudioBtn = document.getElementById('autoSyncAudioBtn');
   const imgInput = document.getElementById('imgInput');
   const replaceInput = document.getElementById('replaceInput');
   const imgDrop = document.getElementById('imgDrop');
@@ -250,13 +258,7 @@
   const previewBox = document.getElementById('previewBox');
   const autoDistBtn = document.getElementById('autoDistBtn');
   const clearAllBtn = document.getElementById('clearAllBtn');
-  
-  const sortAscBtn = document.getElementById('sortAscBtn');
-  const sortDescBtn = document.getElementById('sortDescBtn');
-
   const scriptInput = document.getElementById('scriptInput');
-  const scriptFileInput = document.getElementById('scriptFileInput');
-  const scriptFileDrop = document.getElementById('scriptFileDrop');
   const applyScriptBtn = document.getElementById('applyScriptBtn');
   const syncStatus = document.getElementById('syncStatus');
 
@@ -269,16 +271,6 @@
   const waveformCanvas = document.getElementById('waveformCanvas');
   const trackTimeline = document.getElementById('trackTimeline');
 
-  const FILTER_CSS = {
-    none: 'none', 
-    vintage: 'sepia(0.35) contrast(1.1) brightness(0.9) saturate(1.2)',
-    bw: 'grayscale(1)', 
-    sepia: 'sepia(0.8)',
-    cool: 'hue-rotate(15deg) saturate(1.15)', 
-    warm: 'sepia(0.25) saturate(1.35)', 
-    vivid: 'saturate(1.6) contrast(1.15)'
-  };
-
   let clips = [];
   let audioLoaded = false;
   let audioDuration = 0;
@@ -286,6 +278,7 @@
   let playing = false;
   let currentTime = 0;
   let clipToReplaceIndex = null;
+  let currentAudioFile = null;
 
   function uid(){ return Math.random().toString(36).slice(2,9); }
 
@@ -377,6 +370,9 @@
   audioInput.addEventListener('change', async e => {
     const f = e.target.files[0];
     if(!f) return;
+    currentAudioFile = f;
+    autoSyncAudioBtn.style.display = 'block';
+
     audioStatus.textContent = '⏳ Decodificando duración exacta...';
     audioEl.src = URL.createObjectURL(f);
 
@@ -403,23 +399,89 @@
     }
   });
 
-  scriptFileDrop.addEventListener('click', ()=> scriptFileInput.click());
-  scriptFileInput.addEventListener('change', e => {
-    const file = e.target.files[0];
-    if(!file) return;
-    const reader = new FileReader();
-    reader.onload = function(evt) {
-      scriptInput.value = evt.target.result;
-      syncStatus.textContent = `✅ Archivo "${file.name}" cargado correctamente.`;
-    };
-    reader.readAsText(file);
+  // --- LÓGICA DE INTELIGENCIA ARTIFICIAL CON OPENAI ---
+  autoSyncAudioBtn.addEventListener('click', async () => {
+    if (!currentAudioFile) {
+      alert('Por favor, primero sube un archivo de audio.');
+      return;
+    }
+
+    let apiKey = localStorage.getItem('openai_api_key');
+    if (!apiKey) {
+      apiKey = prompt('Por favor, ingresa tu API Key de OpenAI (empieza por sk-...):');
+      if (apiKey && apiKey.trim() !== '') {
+        localStorage.setItem('openai_api_key', apiKey.trim());
+      } else {
+        return;
+      }
+    }
+
+    autoSyncAudioBtn.textContent = '⏳ Escuchando y transcribiendo audio...';
+    autoSyncAudioBtn.disabled = true;
+
+    try {
+      // 1. Transcripción con Whisper
+      const formData = new FormData();
+      formData.append('file', currentAudioFile);
+      formData.append('model', 'whisper-1');
+      formData.append('response_format', 'verbose_json');
+      formData.append('timestamp_granularities[]', 'segment');
+
+      const whisperRes = await fetch('https://api.openai.com/v1/audio/transcriptions', {
+        method: 'POST',
+        headers: { 'Authorization': 'Bearer ' + apiKey },
+        body: formData
+      });
+
+      const whisperData = await whisperRes.json();
+      if (whisperData.error) throw new Error(whisperData.error.message);
+
+      // 2. Extraer tiempos
+      const segmentsText = whisperData.segments.map(seg => 
+        `[${seg.start.toFixed(1)}s - ${seg.end.toFixed(1)}s]: ${seg.text}`
+      ).join('\n');
+
+      autoSyncAudioBtn.textContent = '🧠 Diseñando escena por escena...';
+
+      // 3. Generar tabla con GPT-4o
+      const promptText = "Eres un director de arte de video. Agrupa esta transcripción en bloques lógicos de 3 a 7 segundos. Devuelve ÚNICAMENTE una tabla en formato Markdown con la estructura exacta:\n| Tiempo | Narración | Visual |\n\nTranscripción con tiempos:\n" + segmentsText;
+
+      const gptRes = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ' + apiKey
+        },
+        body: JSON.stringify({
+          model: 'gpt-4o',
+          messages: [{ role: 'user', content: promptText }]
+        })
+      });
+
+      const gptData = await gptRes.json();
+      if (gptData.error) throw new Error(gptData.error.message);
+
+      // 4. Inyectar tabla y sincronizar
+      scriptInput.value = gptData.choices[0].message.content;
+      applyScriptBtn.click();
+
+      autoSyncAudioBtn.textContent = '✅ ¡Sincronización Completada!';
+    } catch (err) {
+      alert("Error con la Inteligencia Artificial: " + err.message);
+      if(err.message.includes('API key') || err.message.includes('incorrect')) {
+        localStorage.removeItem('openai_api_key');
+      }
+      autoSyncAudioBtn.textContent = '✨ Generar Guion Visual con IA Automáticamente';
+    } finally {
+      autoSyncAudioBtn.disabled = false;
+    }
   });
 
-  // ANALIZADOR MEJORADO PARA DETECTAR RANGOS DE TIEMPO CON GUIONES / BARRAS
+  // PARSER DE TABLAS DE GUION
   applyScriptBtn.addEventListener('click', ()=>{
     const rawText = scriptInput.value.trim();
     if(!rawText){
-      syncStatus.textContent = '❌ El contenido del guion está vacío.';
+      syncStatus.textContent = '❌ El cuadro de guion está vacío.';
       return;
     }
 
@@ -427,101 +489,54 @@
     let parsedEntries = [];
 
     lines.forEach(line => {
-      if(line.startsWith('#') || line.startsWith('|-') || line.startsWith('|---')) return;
+      if(line.startsWith('|---') || line.startsWith('|-')) return;
 
       if(line.includes('|')){
         const cols = line.split('|').map(c => c.trim()).filter(c => c !== '');
-        for(let col of cols){
-          // Detecta formatos como 0:30–0:45 o 0:30-0:45 o 0:00/0:45
-          if(col.includes(':') && (col.includes('–') || col.includes('-') || col.includes('/'))){
-            const parts = col.split(/–|-|\//);
-            const startSec = parseTimestampToSeconds(parts[0]);
-            const endSec = parseTimestampToSeconds(parts[1]);
+        if(cols.length >= 3){
+          for(let col of cols){
+            if(col.includes(':') || col.match(/^\d+$/)){
+              const timeParts = col.split('–')[0].split('-');
+              const startSec = parseTimestampToSeconds(timeParts[0]);
+              
+              const textCols = cols.filter(c => c !== col && !c.match(/^\d+$/) && !c.includes(':'));
+              const narration = textCols[0] || '';
+              const visualDesc = textCols[1] || '';
 
-            const textCols = cols.filter(c => c !== col && !c.match(/^\d+$/) && !c.includes(':'));
-            const narration = textCols[0] || '';
-            const visualDesc = textCols[1] || '';
-
-            if(!isNaN(startSec) && !isNaN(endSec) && endSec > startSec){
-              parsedEntries.push({ start: startSec, duration: endSec - startSec, narration, visualDesc });
+              parsedEntries.push({ time: startSec, narration, visualDesc });
+              break;
             }
-            break;
           }
+        }
+      } else {
+        const timeMatch = line.match(/(\d+:\d+|\d+)/);
+        if(timeMatch){
+          const startSec = parseTimestampToSeconds(timeMatch[0]);
+          let cleanText = line.replace(timeMatch[0], '').trim();
+          parsedEntries.push({ time: startSec, narration: cleanText, visualDesc: '' });
         }
       }
     });
 
     if(parsedEntries.length === 0){
-      syncStatus.textContent = '❌ No se detectaron rangos de tiempo válidos en las filas de la tabla.';
+      syncStatus.textContent = '❌ No se pudieron interpretar los tiempos del guion.';
       return;
     }
 
-    parsedEntries.sort((a,b) => a.start - b.start);
+    parsedEntries.sort((a,b) => a.time - b.time);
 
-    // CREAR CLIPS AUTOMÁTICOS SI FALTAN IMÁGENES O ASIGNARLAS A LAS EXISTENTES
-    if(clips.length === 0){
-      // Si el usuario no ha subido imágenes, creamos placeholders vacíos para que cada renglón del guion tenga su espacio exacto
-      parsedEntries.forEach((entry, idx) => {
-        clips.push({
-          id: uid(),
-          name: `Visual_${idx + 1}.png`,
-          type: 'image',
-          img: null,
-          url: '',
-          duration: entry.duration,
-          kbStyle: 'pan-lr',
-          kb: buildKB('pan-lr'),
-          filter: 'none',
-          scriptHint: `💬 ${entry.narration} | 🖼️ ${entry.visualDesc}`
-        });
-      });
-    } else {
-      // Si ya hay imágenes subidas, las ordenamos y emparejamos
-      let newClips = [];
-      parsedEntries.forEach((entry) => {
-        let matchedClipIndex = -1;
-        const descLower = entry.visualDesc.toLowerCase();
-        
-        for(let i=0; i<clips.length; i++){
-          const clipNameLower = clips[i].name.toLowerCase();
-          if(descLower.includes(clipNameLower.split('.')[0])){
-            matchedClipIndex = i;
-            break;
-          }
-        }
-
-        let clipToUse;
-        if(matchedClipIndex !== -1){
-          clipToUse = clips.splice(matchedClipIndex, 1)[0];
-        } else {
-          clipToUse = clips.shift() || null;
-        }
-
-        if(clipToUse){
-          clipToUse.duration = entry.duration;
-          clipToUse.scriptHint = `💬 ${entry.narration} | 🖼️ ${entry.visualDesc}`;
-          newClips.push(clipToUse);
-        }
-      });
-
-      while(clips.length > 0){
-        newClips.push(clips.shift());
+    for(let i=0; i<clips.length; i++){
+      if(i < parsedEntries.length){
+        const start = parsedEntries[i].time;
+        let end = (i + 1 < parsedEntries.length) ? parsedEntries[i+1].time : (audioLoaded ? audioDuration : start + 7.5);
+        if(end <= start) end = start + 5;
+        clips[i].duration = Math.max(0.05, end - start);
+        clips[i].scriptHint = `💬 ${parsedEntries[i].narration} | 🖼️ ${parsedEntries[i].visualDesc}`;
       }
-      clips = newClips;
     }
 
     renderClipList();
-    syncStatus.textContent = `✅ ¡Sincronización completa! ${parsedEntries.length} visuales organizadas con sus tiempos exactos.`;
-  });
-
-  sortAscBtn.addEventListener('click', ()=>{
-    clips.sort((a,b) => a.name.localeCompare(b.name, undefined, {numeric: true, sensitivity: 'base'}));
-    renderClipList();
-  });
-
-  sortDescBtn.addEventListener('click', ()=>{
-    clips.sort((a,b) => b.name.localeCompare(a.name, undefined, {numeric: true, sensitivity: 'base'}));
-    renderClipList();
+    syncStatus.textContent = `✅ Guion aplicado: ${Math.min(clips.length, parsedEntries.length)} visuales sincronizadas.`;
   });
 
   function renderTimelineVisual() {
@@ -635,6 +650,16 @@
     replaceInput.value = '';
   });
 
+  document.getElementById('sortAscBtn').addEventListener('click', ()=>{
+    clips.sort((a,b) => a.name.localeCompare(b.name, undefined, {numeric: true, sensitivity: 'base'}));
+    renderClipList();
+  });
+
+  document.getElementById('sortDescBtn').addEventListener('click', ()=>{
+    clips.sort((a,b) => b.name.localeCompare(a.name, undefined, {numeric: true, sensitivity: 'base'}));
+    renderClipList();
+  });
+
   autoDistBtn.addEventListener('click', ()=>{
     if(clips.length === 0) return;
     const target = audioLoaded ? audioDuration : 60;
@@ -662,7 +687,7 @@
       
       const thumb = document.createElement(c.type === 'image' ? 'img' : 'video');
       thumb.className = 'media-preview';
-      thumb.src = c.url || '';
+      thumb.src = c.url;
 
       const meta = document.createElement('div');
       meta.className = 'meta';
@@ -757,114 +782,50 @@
     return null;
   }
 
-  function applyEasing(p, factor) {
-    if (factor <= 0) return p;
-    const eased = p < 0.5 ? 2 * p * p : 1 - Math.pow(-2 * p + 2, 2) / 2;
-    return p + (eased - p) * factor;
-  }
-
   function drawFrame(t){
-    const info = getClipAtTime(t);
-    const W = canvas.width, H = canvas.height;
-    ctx.clearRect(0,0,W,H);
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    const item = getClipAtTime(t);
+    if(!item) return;
 
-    if(!info || !info.clip.img && !info.clip.video){
-      ctx.fillStyle = '#000'; ctx.fillRect(0,0,W,H);
-      return;
-    }
-
-    const { clip, progress } = info;
-    const media = clip.type === 'image' ? clip.img : clip.video;
-    if(!media) {
-      ctx.fillStyle = '#000'; ctx.fillRect(0,0,W,H);
-      return;
-    }
+    const { clip, progress } = item;
+    const easedProgress = applyEasing(progress, parseFloat(zoomSmoothness.value)||0.5);
 
     ctx.save();
-    ctx.filter = FILTER_CSS[clip.filter] || 'none';
+    
+    // Aplicar Filtros
+    if(clip.filter === 'vintage') ctx.filter = 'sepia(0.4) contrast(1.1) brightness(0.9)';
+    else if(clip.filter === 'vivid') ctx.filter = 'saturate(1.6) contrast(1.1)';
+    else if(clip.filter === 'warm') ctx.filter = 'sepia(0.2) saturate(1.3)';
+    else if(clip.filter === 'cool') ctx.filter = 'hue-rotate(180deg) saturate(0.8)';
+    else if(clip.filter === 'bw') ctx.filter = 'grayscale(1)';
+    else if(clip.filter === 'sepia') ctx.filter = 'sepia(1)';
 
-    const smoothnessFactor = parseFloat(zoomSmoothness.value) || 0;
-    const easedProgress = applyEasing(progress, smoothnessFactor);
+    const scale = clip.kb.s0 + (clip.kb.s1 - clip.kb.s0) * easedProgress;
+    const cx = clip.kb.x0 + (clip.kb.x1 - clip.kb.x0) * easedProgress;
+    const cy = clip.kb.y0 + (clip.kb.y1 - clip.kb.y0) * easedProgress;
 
-    const kb = clip.kb || buildKB('static');
-    const scale = kb.s0 + (kb.s1 - kb.s0) * easedProgress;
-    const cx = kb.x0 + (kb.x1 - kb.x0) * easedProgress;
-    const cy = kb.y0 + (kb.y1 - kb.y0) * easedProgress;
+    const w = canvas.width;
+    const h = canvas.height;
 
-    const mw = media.videoWidth || media.width || W;
-    const mh = media.videoHeight || media.height || H;
-    const aspectMedia = mw / mh;
-    const aspectCanvas = W / H;
+    ctx.translate(w * cx, h * cy);
+    ctx.scale(scale, scale);
+    ctx.translate(-w * cx, -h * cy);
 
-    let renderW, renderH;
-    if(aspectMedia > aspectCanvas){
-      renderH = H * scale; renderW = renderH * aspectMedia;
-    } else {
-      renderW = W * scale; renderH = renderW / aspectMedia;
+    if(clip.type === 'image' && clip.img){
+      ctx.drawImage(clip.img, 0, 0, w, h);
+    } else if(clip.type === 'video' && clip.video){
+      clip.video.currentTime = (progress * clip.duration) % clip.video.duration;
+      ctx.drawImage(clip.video, 0, 0, w, h);
     }
-
-    const x = (W / 2) - (cx * renderW);
-    const y = (H / 2) - (cy * renderH);
-
-    ctx.drawImage(media, x, y, renderW, renderH);
     ctx.restore();
   }
 
-  playBtn.addEventListener('click', ()=>{
-    if(playing) return;
-    playing = true;
-    if(audioLoaded) audioEl.play();
-    let lastTime = performance.now();
+  function applyEasing(p, factor) {
+    if (factor <= 0) return p;
+    const eased = p < 0.5 ? 2 * p * p : 1 - (Math.pow(-2 * p + 2, 2) / 2);
+    return p + (eased - p) * factor;
+  }
 
-    function loop(now){
-      if(!playing) return;
-      const dt = (now - lastTime) / 1000;
-      lastTime = now;
-
-      if(audioLoaded){
-        currentTime = audioEl.currentTime;
-      } else {
-        currentTime += dt;
-      }
-
-      const dur = totalDuration();
-      if(currentTime >= dur){
-        currentTime = dur;
-        playing = false;
-        if(audioLoaded) audioEl.pause();
-      }
-
-      timeNow.textContent = fmt(currentTime);
-      trackFill.style.width = ((currentTime / dur) * 100) + '%';
-      drawFrame(currentTime);
-
-      if(playing) requestAnimationFrame(loop);
-    }
-    requestAnimationFrame(loop);
-  });
-
-  stopBtn.addEventListener('click', ()=>{
-    playing = false;
-    currentTime = 0;
-    if(audioLoaded){ audioEl.pause(); audioEl.currentTime = 0; }
-    timeNow.textContent = fmt(0);
-    trackFill.style.width = '0%';
-    drawFrame(0);
-  });
-
-  track.addEventListener('click', e=>{
-    const rect = track.getBoundingClientRect();
-    const ratio = (e.clientX - rect.left) / rect.width;
-    const dur = totalDuration();
-    currentTime = ratio * dur;
-    if(audioLoaded) audioEl.currentTime = currentTime;
-    timeNow.textContent = fmt(currentTime);
-    trackFill.style.width = (ratio * 100) + '%';
-    drawFrame(currentTime);
-  });
-
-  updateResolution();
-  renderClipList();
 })();
 </script>
 </body>
