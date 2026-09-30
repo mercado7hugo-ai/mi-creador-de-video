@@ -98,13 +98,17 @@
 
     <div class="card">
       <h2>2. Medios (Imágenes o Videos)</h2>
-      <div class="dropzone" id="imgDrop">🖼 / 🎥 Sube tus imágenes desordenadas</div>
+      <div class="dropzone" id="imgDrop">🖼 / 🎥 Sube tus imágenes</div>
       <input type="file" id="imgInput" accept="image/*,video/*" multiple>
       <input type="file" id="replaceInput" accept="image/*,video/*">
 
       <div class="row" style="margin-top:10px;">
         <button id="autoDistBtn" class="small">⏱ Repartir por igual</button>
         <button id="clearAllBtn" class="small danger">Vaciar lista</button>
+      </div>
+      <div class="row" style="margin-top:8px;">
+        <button id="sortAscBtn" class="small">🔢 Ordenar 1 ➔ 9 (Ascendente)</button>
+        <button id="sortDescBtn" class="small">🔢 Ordenar 9 ➔ 1 (Descendente)</button>
       </div>
     </div>
 
@@ -113,12 +117,12 @@
       <h2>3. Sincronizar por Guion de Visuales <span class="badge">Automático</span></h2>
       
       <div class="dropzone" id="scriptFileDrop" style="margin-bottom:10px; padding:12px;">
-        📄 Haz clic para subir tu archivo de guion (.md o .txt)[cite: 1]
+        📄 Sube tu archivo de guion (.md o .txt)[cite: 1]
       </div>
       <input type="file" id="scriptFileInput" accept=".md,.txt">
 
       <div class="info-note" style="margin-bottom:6px;">O pega las filas de tu tabla Markdown aquí:</div>
-      <textarea id="scriptInput" rows="5" placeholder="| # | Tiempo | Narración | Visual |" style="width:100%;resize:vertical;padding:8px;border-radius:8px;border:1px solid var(--border);background:var(--bg);color:var(--text);font-size:12px;font-family:monospace;"></textarea>
+      <textarea id="scriptInput" rows="5" placeholder="| 1 | 0:00–0:07 | Imagina que despiertas... | Aldea de Galilea antes del amanecer... |" style="width:100%;resize:vertical;padding:8px;border-radius:8px;border:1px solid var(--border);background:var(--bg);color:var(--text);font-size:12px;font-family:monospace;"></textarea>
       
       <div class="row" style="margin-top:8px;">
         <button id="applyScriptBtn" class="primary small" style="width:100%;">📑 Leer Guion, Asignar Tiempos y Ordenar Imágenes</button>
@@ -247,6 +251,9 @@
   const autoDistBtn = document.getElementById('autoDistBtn');
   const clearAllBtn = document.getElementById('clearAllBtn');
   
+  const sortAscBtn = document.getElementById('sortAscBtn');
+  const sortDescBtn = document.getElementById('sortDescBtn');
+
   const scriptInput = document.getElementById('scriptInput');
   const scriptFileInput = document.getElementById('scriptFileInput');
   const scriptFileDrop = document.getElementById('scriptFileDrop');
@@ -261,6 +268,16 @@
 
   const waveformCanvas = document.getElementById('waveformCanvas');
   const trackTimeline = document.getElementById('trackTimeline');
+
+  const FILTER_CSS = {
+    none: 'none', 
+    vintage: 'sepia(0.35) contrast(1.1) brightness(0.9) saturate(1.2)',
+    bw: 'grayscale(1)', 
+    sepia: 'sepia(0.8)',
+    cool: 'hue-rotate(15deg) saturate(1.15)', 
+    warm: 'sepia(0.25) saturate(1.35)', 
+    vivid: 'saturate(1.6) contrast(1.15)'
+  };
 
   let clips = [];
   let audioLoaded = false;
@@ -386,7 +403,6 @@
     }
   });
 
-  // SUBIR ARCHIVO DE GUION (.md o .txt)
   scriptFileDrop.addEventListener('click', ()=> scriptFileInput.click());
   scriptFileInput.addEventListener('change', e => {
     const file = e.target.files[0];
@@ -399,7 +415,7 @@
     reader.readAsText(file);
   });
 
-  // ANALIZADOR ROBUSTO DE TABLAS MARKDOWN EN EL GUION
+  // ANALIZADOR MEJORADO PARA DETECTAR RANGOS DE TIEMPO CON GUIONES / BARRAS
   applyScriptBtn.addEventListener('click', ()=>{
     const rawText = scriptInput.value.trim();
     if(!rawText){
@@ -411,19 +427,17 @@
     let parsedEntries = [];
 
     lines.forEach(line => {
-      // Ignorar cabeceras, separadores de tabla markdown o títulos
       if(line.startsWith('#') || line.startsWith('|-') || line.startsWith('|---')) return;
 
       if(line.includes('|')){
         const cols = line.split('|').map(c => c.trim()).filter(c => c !== '');
-        // Buscamos filas que contengan formato de tiempo con guion (ej. 0:00–0:07 o 0:00-0:07)
         for(let col of cols){
-          if(col.includes(':') && (col.includes('–') || col.includes('-'))){
-            const parts = col.split(/–|-/);
+          // Detecta formatos como 0:30–0:45 o 0:30-0:45 o 0:00/0:45
+          if(col.includes(':') && (col.includes('–') || col.includes('-') || col.includes('/'))){
+            const parts = col.split(/–|-|\//);
             const startSec = parseTimestampToSeconds(parts[0]);
             const endSec = parseTimestampToSeconds(parts[1]);
 
-            // Las columnas de texto restantes corresponden a la narración y la descripción visual
             const textCols = cols.filter(c => c !== col && !c.match(/^\d+$/) && !c.includes(':'));
             const narration = textCols[0] || '';
             const visualDesc = textCols[1] || '';
@@ -438,21 +452,36 @@
     });
 
     if(parsedEntries.length === 0){
-      syncStatus.textContent = '❌ No se encontraron filas de tabla válidas con rangos de tiempo (ej: 0:00–0:07).';
+      syncStatus.textContent = '❌ No se detectaron rangos de tiempo válidos en las filas de la tabla.';
       return;
     }
 
-    // Ordenar cronológicamente por tiempo de inicio
     parsedEntries.sort((a,b) => a.start - b.start);
 
-    // Sincronizar y ordenar automáticamente los clips subidos según las entradas del guion
-    if(clips.length > 0){
+    // CREAR CLIPS AUTOMÁTICOS SI FALTAN IMÁGENES O ASIGNARLAS A LAS EXISTENTES
+    if(clips.length === 0){
+      // Si el usuario no ha subido imágenes, creamos placeholders vacíos para que cada renglón del guion tenga su espacio exacto
+      parsedEntries.forEach((entry, idx) => {
+        clips.push({
+          id: uid(),
+          name: `Visual_${idx + 1}.png`,
+          type: 'image',
+          img: null,
+          url: '',
+          duration: entry.duration,
+          kbStyle: 'pan-lr',
+          kb: buildKB('pan-lr'),
+          filter: 'none',
+          scriptHint: `💬 ${entry.narration} | 🖼️ ${entry.visualDesc}`
+        });
+      });
+    } else {
+      // Si ya hay imágenes subidas, las ordenamos y emparejamos
       let newClips = [];
       parsedEntries.forEach((entry) => {
         let matchedClipIndex = -1;
         const descLower = entry.visualDesc.toLowerCase();
         
-        // Intentar hacer match inteligente por nombre de archivo
         for(let i=0; i<clips.length; i++){
           const clipNameLower = clips[i].name.toLowerCase();
           if(descLower.includes(clipNameLower.split('.')[0])){
@@ -469,13 +498,12 @@
         }
 
         if(clipToUse){
-          clipToUse.duration = entry.duration; // Duración exacta calculada (Fin - Inicio)
+          clipToUse.duration = entry.duration;
           clipToUse.scriptHint = `💬 ${entry.narration} | 🖼️ ${entry.visualDesc}`;
           newClips.push(clipToUse);
         }
       });
 
-      // Agregar cualquier imagen sobrante al final
       while(clips.length > 0){
         newClips.push(clips.shift());
       }
@@ -483,7 +511,17 @@
     }
 
     renderClipList();
-    syncStatus.textContent = `✅ ¡Guion procesado! ${parsedEntries.length} visuales organizadas con sus tiempos exactos.`;
+    syncStatus.textContent = `✅ ¡Sincronización completa! ${parsedEntries.length} visuales organizadas con sus tiempos exactos.`;
+  });
+
+  sortAscBtn.addEventListener('click', ()=>{
+    clips.sort((a,b) => a.name.localeCompare(b.name, undefined, {numeric: true, sensitivity: 'base'}));
+    renderClipList();
+  });
+
+  sortDescBtn.addEventListener('click', ()=>{
+    clips.sort((a,b) => b.name.localeCompare(a.name, undefined, {numeric: true, sensitivity: 'base'}));
+    renderClipList();
   });
 
   function renderTimelineVisual() {
@@ -624,7 +662,7 @@
       
       const thumb = document.createElement(c.type === 'image' ? 'img' : 'video');
       thumb.className = 'media-preview';
-      thumb.src = c.url;
+      thumb.src = c.url || '';
 
       const meta = document.createElement('div');
       meta.className = 'meta';
@@ -730,14 +768,17 @@
     const W = canvas.width, H = canvas.height;
     ctx.clearRect(0,0,W,H);
 
-    if(!info){
+    if(!info || !info.clip.img && !info.clip.video){
       ctx.fillStyle = '#000'; ctx.fillRect(0,0,W,H);
       return;
     }
 
     const { clip, progress } = info;
     const media = clip.type === 'image' ? clip.img : clip.video;
-    if(!media) return;
+    if(!media) {
+      ctx.fillStyle = '#000'; ctx.fillRect(0,0,W,H);
+      return;
+    }
 
     ctx.save();
     ctx.filter = FILTER_CSS[clip.filter] || 'none';
