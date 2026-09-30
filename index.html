@@ -100,7 +100,7 @@
 
     <div class="card">
       <h2>2. Medios (Imágenes o Videos)</h2>
-      <div class="dropzone" id="imgDrop">🖼 / 🎥 Sube imágenes o videos</div>
+      <div class="dropzone" id="imgDrop">🖼 / 🎥 Sube tus imágenes desordenadas</div>
       <input type="file" id="imgInput" accept="image/*,video/*" multiple>
       <input type="file" id="replaceInput" accept="image/*,video/*">
 
@@ -108,24 +108,22 @@
         <button id="autoDistBtn" class="small">⏱ Repartir por igual</button>
         <button id="clearAllBtn" class="small danger">Vaciar lista</button>
       </div>
-      <div class="row" style="margin-top:8px;">
-        <button id="sortAscBtn" class="small">🔢 Ordenar 1 ➔ 9 (Ascendente)</button>
-        <button id="sortDescBtn" class="small">🔢 Ordenar 9 ➔ 1 (Descendente)</button>
-      </div>
     </div>
 
-    <!-- PANEL 3: IMPORTAR GUION DE VISUALES (FORMATO TABLA O LÍNEAS) -->
+    <!-- PANEL 3: IMPORTAR GUION DE VISUALES (SUBIR ARCHIVO O PEGAR) -->
     <div class="card">
-      <h2>3. Sincronizar por Guion de Visuales <span class="badge">Avanzado</span></h2>
+      <h2>3. Subir Guion o Archivo de Visuales <span class="badge">Inteligente</span></h2>
       
-      <div class="info-note" style="margin-bottom:8px;">
-        Pega tu bloque de guion (compatible con tablas Markdown o líneas con formato <code>| Tiempo | Narración | Visual |</code>):
+      <div class="dropzone" id="scriptFileDrop" style="margin-bottom:10px; padding:12px;">
+        📄 Sube tu archivo de guion (.md o .txt)
       </div>
+      <input type="file" id="scriptFileInput" accept=".md,.txt">
 
-      <textarea id="scriptInput" rows="6" placeholder="| 1 | 0:00–0:07 | Imagina que despiertas... | Aldea de Galilea antes del amanecer... |" style="width:100%;resize:vertical;padding:8px;border-radius:8px;border:1px solid var(--border);background:var(--bg);color:var(--text);font-size:12px;font-family:monospace;"></textarea>
+      <div class="info-note" style="margin-bottom:6px;">O pega el contenido de la tabla aquí:</div>
+      <textarea id="scriptInput" rows="4" placeholder="| # | Tiempo | Narración | Visual |" style="width:100%;resize:vertical;padding:8px;border-radius:8px;border:1px solid var(--border);background:var(--bg);color:var(--text);font-size:12px;font-family:monospace;"></textarea>
       
       <div class="row" style="margin-top:8px;">
-        <button id="applyScriptBtn" class="primary small" style="width:100%;">📑 Leer Guion y Organizar Tiempos/Visuales</button>
+        <button id="applyScriptBtn" class="primary small" style="width:100%;">📑 Procesar Guion y Ordenar Imágenes</button>
       </div>
       <div class="status" id="syncStatus"></div>
     </div>
@@ -256,7 +254,10 @@
   const previewBox = document.getElementById('previewBox');
   const autoDistBtn = document.getElementById('autoDistBtn');
   const clearAllBtn = document.getElementById('clearAllBtn');
+  
   const scriptInput = document.getElementById('scriptInput');
+  const scriptFileInput = document.getElementById('scriptFileInput');
+  const scriptFileDrop = document.getElementById('scriptFileDrop');
   const applyScriptBtn = document.getElementById('applyScriptBtn');
   const syncStatus = document.getElementById('syncStatus');
 
@@ -393,11 +394,24 @@
     }
   });
 
-  // PARSER INTELIGENTE PARA TABLAS DE GUION DE VISUALES
+  // CARGAR ARCHIVO DE GUION DESDE EL BOTÓN
+  scriptFileDrop.addEventListener('click', ()=> scriptFileInput.click());
+  scriptFileInput.addEventListener('change', e => {
+    const file = e.target.files[0];
+    if(!file) return;
+    const reader = new FileReader();
+    reader.onload = function(evt) {
+      scriptInput.value = evt.target.result;
+      syncStatus.textContent = `✅ Archivo "${file.name}" cargado correctamente.`;
+    };
+    reader.readAsText(file);
+  });
+
+  // PROCESAR GUION, CALCULAR DURACIONES Y AUTO-ORDENAR IMÁGENES
   applyScriptBtn.addEventListener('click', ()=>{
     const rawText = scriptInput.value.trim();
     if(!rawText){
-      syncStatus.textContent = '❌ El cuadro de guion está vacío.';
+      syncStatus.textContent = '❌ No hay contenido de guion para procesar.';
       return;
     }
 
@@ -405,20 +419,16 @@
     let parsedEntries = [];
 
     lines.forEach(line => {
-      // Ignorar líneas de cabecera de tabla markdown o separadores
-      if(line.startsWith('|---') || line.startsWith('|-')) return;
+      if(line.startsWith('|---') || line.startsWith('|-') || line.startsWith('#')) return;
 
       if(line.includes('|')){
-        // Es una fila de tabla Markdown: | # | Tiempo | Narración | Visual |
         const cols = line.split('|').map(c => c.trim()).filter(c => c !== '');
         if(cols.length >= 3){
-          // Intentar ubicar cuál columna tiene el tiempo (ej. 0:00–0:07 o 0:00)
           for(let col of cols){
             if(col.includes(':') || col.match(/^\d+$/)){
-              const timeParts = col.split('–')[0].split('-'); // Manejar rangos 0:00–0:07
+              const timeParts = col.split('–')[0].split('-');
               const startSec = parseTimestampToSeconds(timeParts[0]);
               
-              // Buscamos la narración y la descripción visual en las otras columnas
               const textCols = cols.filter(c => c !== col && !c.match(/^\d+$/) && !c.includes(':'));
               const narration = textCols[0] || '';
               const visualDesc = textCols[1] || '';
@@ -428,38 +438,65 @@
             }
           }
         }
-      } else {
-        // Formato alternativo de línea simple si no es tabla
-        const timeMatch = line.match(/(\d+:\d+|\d+)/);
-        if(timeMatch){
-          const startSec = parseTimestampToSeconds(timeMatch[0]);
-          let cleanText = line.replace(timeMatch[0], '').trim();
-          parsedEntries.push({ time: startSec, narration: cleanText, visualDesc: '' });
-        }
       }
     });
 
     if(parsedEntries.length === 0){
-      syncStatus.textContent = '❌ No se pudieron interpretar los tiempos del guion. Verifica el formato.';
+      syncStatus.textContent = '❌ No se detectaron filas de tabla válidas en el guion.';
       return;
     }
 
-    // Ordenar por tiempo de inicio
+    // Ordenar entradas por tiempo cronológico
     parsedEntries.sort((a,b) => a.time - b.time);
 
-    // Asignar a los clips existentes
-    for(let i=0; i<clips.length; i++){
-      if(i < parsedEntries.length){
-        const start = parsedEntries[i].time;
-        let end = (i + 1 < parsedEntries.length) ? parsedEntries[i+1].time : (audioLoaded ? audioDuration : start + 7.5);
-        if(end <= start) end = start + 5;
-        clips[i].duration = Math.max(0.05, end - start);
-        clips[i].scriptHint = `💬 ${parsedEntries[i].narration} | 🖼️ ${parsedEntries[i].visualDesc}`;
+    // AUTO-ORDENAMIENTO DE IMÁGENES:
+    // Si tenemos imágenes subidas y un conjunto de visuales en el guion, intentamos hacer match por nombre o reutilizamos las imágenes disponibles ordenándolas secuencialmente según el guion.
+    if(clips.length > 0 && parsedEntries.length > 0){
+      let newClips = [];
+      parsedEntries.forEach((entry, idx) => {
+        // Buscamos si alguna imagen subida coincide con palabras clave de la descripción visual
+        let matchedClipIndex = -1;
+        const descLower = entry.visualDesc.toLowerCase();
+        
+        for(let i=0; i<clips.length; i++){
+          const clipNameLower = clips[i].name.toLowerCase();
+          // Si el nombre del archivo de imagen está mencionado en la descripción visual
+          if(descLower.includes(clipNameLower.split('.')[0])){
+            matchedClipIndex = i;
+            break;
+          }
+        }
+
+        let clipToUse;
+        if(matchedClipIndex !== -1){
+          clipToUse = clips.splice(matchedClipIndex, 1)[0]; // Tomamos la imagen que hizo match
+        } else {
+          // Si no hay coincidencia exacta de nombre, tomamos la primera disponible en orden secuencial
+          clipToUse = clips.shift() || null;
+        }
+
+        if(clipToUse){
+          // Asignar duración basada en el siguiente tiempo del guion o valor por defecto
+          const start = entry.time;
+          let end = (idx + 1 < parsedEntries.length) ? parsedEntries[idx+1].time : (audioLoaded ? audioDuration : start + 10);
+          if(end <= start) end = start + 7.5;
+          
+          clipToUse.duration = Math.max(0.05, end - start);
+          clipToUse.scriptHint = `💬 ${entry.narration} | 🖼️ ${entry.visualDesc}`;
+          newClips.push(clipToUse);
+        }
+      });
+
+      // Si sobraron imágenes en la lista desordenada, las agregamos al final
+      while(clips.length > 0){
+        newClips.push(clips.shift());
       }
+
+      clips = newClips;
     }
 
     renderClipList();
-    syncStatus.textContent = `✅ Guion aplicado: ${Math.min(clips.length, parsedEntries.length)} visuales sincronizadas.`;
+    syncStatus.textContent = `✅ ¡Guion sincronizado y ${clips.length} imágenes ordenadas automáticamente!`;
   });
 
   function renderTimelineVisual() {
@@ -571,16 +608,6 @@
       img.src = url;
     }
     replaceInput.value = '';
-  });
-
-  document.getElementById('sortAscBtn').addEventListener('click', ()=>{
-    clips.sort((a,b) => a.name.localeCompare(b.name, undefined, {numeric: true, sensitivity: 'base'}));
-    renderClipList();
-  });
-
-  document.getElementById('sortDescBtn').addEventListener('click', ()=>{
-    clips.sort((a,b) => b.name.localeCompare(a.name, undefined, {numeric: true, sensitivity: 'base'}));
-    renderClipList();
   });
 
   autoDistBtn.addEventListener('click', ()=>{
