@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>AutoClip Studio Pro</title>
+<title>AutoClip Studio Pro — Editor & Exportador</title>
 <link rel="manifest" href="./manifest.json">
 <script>
   if ('serviceWorker' in navigator) {
@@ -15,7 +15,7 @@
 <style>
   :root{
     --bg:#f5f5f7; --panel:#ffffff; --text:#1b1b1f; --muted:#6b6b76;
-    --accent:#7c5cff; --accent-2:#ff6fa5; --border:#e2e2e8; --danger:#e5484d;
+    --accent:#7c5cff; --accent-2:#ff6fa5; --border:#e2e2e8; --danger:#e5484d; --success:#2ea043;
     --shadow: 0 2px 10px rgba(0,0,0,.06); --radius: 14px;
   }
   @media (prefers-color-scheme: dark){
@@ -25,44 +25,47 @@
     }
   }
   *{box-sizing:border-box;}
-  body{ margin:0; background:var(--bg); color:var(--text); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; min-height:100vh; }
+  body{ margin:0; background:var(--bg); color:var(--text); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; min-height:100vh; padding-bottom:40px; }
   header{ padding:20px 24px 8px; text-align:center; }
   header h1{ margin:0; font-size:22px; font-weight:800; background:linear-gradient(90deg,var(--accent),var(--accent-2)); -webkit-background-clip:text; background-clip:text; color:transparent; }
   header p{ margin:4px 0 0; color:var(--muted); font-size:13px; }
-  .wrap{ display:flex; gap:18px; padding:16px; max-width:1350px; margin:0 auto; flex-wrap:wrap; }
-  .col{ flex:1 1 380px; min-width:320px; }
+  .wrap{ display:flex; gap:18px; padding:16px; max-width:1400px; margin:0 auto; flex-wrap:wrap; }
+  .col{ flex:1 1 420px; min-width:320px; }
   .card{ background:var(--panel); border:1px solid var(--border); border-radius:var(--radius); padding:16px; box-shadow:var(--shadow); margin-bottom:16px; }
   .card h2{ margin:0 0 10px; font-size:15px; font-weight:700; display:flex; align-items:center; gap:8px; }
-  .dropzone{ border:2px dashed var(--border); border-radius:12px; padding:20px; text-align:center; color:var(--muted); cursor:pointer; transition:.15s; font-size:13px; }
+  .dropzone{ border:2px dashed var(--border); border-radius:12px; padding:18px; text-align:center; color:var(--muted); cursor:pointer; transition:.15s; font-size:13px; }
   .dropzone:hover{ border-color:var(--accent); color:var(--accent); }
   input[type=file]{ display:none; }
   button{ font-family:inherit; border:none; border-radius:10px; padding:10px 16px; font-size:13px; font-weight:600; cursor:pointer; transition:.15s; background:var(--border); color:var(--text); }
   button:hover{ filter:brightness(1.08); }
   button.primary{ background:linear-gradient(90deg,var(--accent),var(--accent-2)); color:#fff; }
+  button.success{ background:var(--success); color:#fff; font-size:14px; padding:12px; }
   button.small{ padding:6px 10px; font-size:12px; border-radius:8px; }
   button.danger{ background:transparent; color:var(--danger); }
   .row{ display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
-  #clipList{ list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:8px; }
+  
+  /* LISTA DE CLIPS Y CONTROLES MANUALE S */
+  #clipList{ list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:8px; max-height: 280px; overflow-y: auto; }
   .clip{ display:flex; gap:10px; align-items:center; background:var(--bg); border:1px solid var(--border); border-radius:10px; padding:8px; }
-  .clip .media-preview{ width:64px; height:40px; object-fit:cover; border-radius:6px; flex-shrink:0; background:#000; }
-  .clip .meta{ flex:1; min-width:0; display:flex; flex-direction:column; gap:6px; }
+  .clip .media-preview{ width:60px; height:40px; object-fit:cover; border-radius:6px; flex-shrink:0; background:#000; }
+  .clip .meta{ flex:1; min-width:0; display:flex; flex-direction:column; gap:4px; }
   .clip .meta .name{ font-size:12px; color:var(--muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-  .clip .meta .script-hint{ font-size:11px; color:var(--accent); font-style:italic; background:rgba(124,92,255,0.08); padding:4px 8px; border-radius:6px; line-height: 1.3; }
+  .clip .meta .script-hint{ font-size:11px; color:var(--accent); font-style:italic; background:rgba(124,92,255,0.08); padding:3px 6px; border-radius:4px; }
   .clip .controls-line{ display:flex; gap:6px; align-items:center; flex-wrap:wrap; }
-  .clip input[type=number], input[type=number]{ padding:4px 6px; border-radius:6px; border:1px solid var(--border); background:var(--panel); color:var(--text); font-size:12px; width:70px; }
-  .clip select, select{ padding:6px 8px; border-radius:6px; border:1px solid var(--border); background:var(--panel); color:var(--text); font-size:12px; }
+  .clip input[type=number]{ padding:4px 6px; border-radius:6px; border:1px solid var(--border); background:var(--panel); color:var(--text); font-size:12px; width:65px; }
+  .clip select{ padding:4px 6px; border-radius:6px; border:1px solid var(--border); background:var(--panel); color:var(--text); font-size:12px; }
   .empty-hint{ color:var(--muted); font-size:12px; text-align:center; padding:10px; }
+  
+  /* VISTA PREVIA DE VIDEO */
   .previewBox{ background:#000; border-radius:12px; overflow:hidden; position:relative; aspect-ratio:16/9; }
   canvas{ width:100%; height:100%; display:block; }
   
-  /* LÍNEA DE TIEMPO VISUAL E INTERACTIVA */
-  .timeline-container { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 10px; margin-top: 10px; position: relative; }
-  .waveform-box { width: 100%; height: 50px; background: #111; border-radius: 6px; display: block; margin-bottom: 6px; }
-  .track-timeline { height: 36px; background: rgba(124, 92, 255, 0.08); border: 1px solid var(--border); border-radius: 6px; position: relative; overflow-x: auto; overflow-y: hidden; }
-  .timeline-block { position: absolute; top: 2px; bottom: 2px; background: var(--accent); opacity: 0.85; border-radius: 4px; border: 1px solid #fff; display: flex; align-items: center; justify-content: space-between; padding: 0 6px; color: #fff; font-size: 10px; font-weight: bold; white-space: nowrap; overflow: hidden; cursor: grab; user-select: none; }
+  /* LÍNEA DE TIEMPO VISUAL CON ONDA DE AUDIO */
+  .timeline-container { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 10px; margin-top: 10px; }
+  .waveform-box { width: 100%; height: 40px; background: #111; border-radius: 6px; display: block; margin-bottom: 6px; }
+  .track-timeline { height: 42px; background: rgba(124, 92, 255, 0.08); border: 1px solid var(--border); border-radius: 6px; position: relative; overflow-x: auto; white-space: nowrap; display: flex; align-items: center; padding: 2px; }
+  .timeline-block { position: relative; height: 36px; background: var(--accent); opacity: 0.9; border-radius: 6px; border: 1px solid #fff; display: inline-flex; align-items: center; justify-content: space-between; padding: 0 6px; color: #fff; font-size: 11px; font-weight: bold; margin-right: 2px; flex-shrink: 0; box-sizing: border-box; }
   .timeline-block:hover { opacity: 1; }
-  .timeline-block .handle { width: 8px; height: 100%; background: rgba(255,255,255,0.7); position: absolute; top: 0; cursor: ew-resize; }
-  .timeline-block .handle.right { right: 0; }
 
   .playbar{ margin-top:10px; }
   .track{ height:8px; background:var(--border); border-radius:4px; position:relative; cursor:pointer; margin:8px 0; }
@@ -71,135 +74,126 @@
   .status{ font-size:12px; color:var(--muted); min-height:16px; margin-top:6px; }
   .badge{ font-size:10px; padding:2px 7px; border-radius:20px; background:var(--border); color:var(--muted); font-weight:700; }
 
-  .checkbox-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 8px; margin: 10px 0; }
-  .checkbox-btn { display: flex; align-items: center; gap: 6px; background: var(--bg); border: 1px solid var(--border); padding: 8px 10px; border-radius: 8px; font-size: 12px; cursor: pointer; user-select: none; }
+  .checkbox-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 8px; margin: 10px 0; }
+  .checkbox-btn { display: flex; align-items: center; gap: 6px; background: var(--bg); border: 1px solid var(--border); padding: 6px 8px; border-radius: 8px; font-size: 12px; cursor: pointer; }
   .slider-container { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
   .slider-container input[type=range] { flex: 1; accent-color: var(--accent); }
-  .info-note { font-size: 12px; color: var(--muted); margin-top: 6px; line-height: 1.4; }
+  .info-note { font-size: 11px; color: var(--muted); line-height: 1.4; }
 </style>
 </head>
 <body>
 
 <header>
   <h1>🎬 AutoClip Studio Pro</h1>
-  <p>Sincronización por IA y control de tiempo manual cuadro por cuadro.</p>
+  <p>Sincronización Inteligente por IA, Edición Manual y Exportación de Video</p>
 </header>
 
 <div class="wrap">
-  <!-- COLUMNA IZQUIERDA -->
+  <!-- COLUMNA IZQUIERDA: AUDIO Y MEDIOS -->
   <div class="col">
-    <!-- PANEL 1: AUDIO -->
+    <!-- 1. AUDIO -->
     <div class="card">
       <h2>1. Narración / Audio</h2>
-      <div class="dropzone" id="audioDrop">🎙 Haz clic para subir audio (mp3, wav, m4a, aac)</div>
+      <div class="dropzone" id="audioDrop">🎙 Clic para subir audio (MP3, WAV, M4A)</div>
       <input type="file" id="audioInput" accept="audio/*">
-      <audio id="audioEl" controls style="display:none;"></audio>
+      <audio id="audioEl" controls style="width:100%; margin-top:10px;"></audio>
       <div class="status" id="audioStatus">Sin audio cargado.</div>
       <button id="autoSyncAudioBtn" class="primary small" style="display:none; width:100%; margin-top:8px;">✨ Analizar Audio con Gemini IA (GRATIS)</button>
     </div>
 
-    <!-- PANEL 2: MEDIOS -->
+    <!-- 2. MEDIOS -->
     <div class="card">
       <h2>2. Medios (Imágenes o Videos)</h2>
-      <div class="dropzone" id="imgDrop">🖼 / 🎥 Sube imágenes o videos</div>
+      <div class="dropzone" id="imgDrop">🖼 / 🎥 Subir imágenes o clips de video</div>
       <input type="file" id="imgInput" accept="image/*,video/*" multiple>
       <input type="file" id="replaceInput" accept="image/*,video/*">
 
       <div class="row" style="margin-top:10px;">
-        <button id="autoDistBtn" class="small">⏱ Repartir equitativamente</button>
-        <button id="clearAllBtn" class="small danger">Vaciar lista</button>
-      </div>
-      <div class="row" style="margin-top:8px;">
-        <button id="sortAscBtn" class="small">🔢 Ordenar Ascendente</button>
-        <button id="sortDescBtn" class="small">🔢 Ordenar Descendente</button>
+        <button id="autoDistBtn" class="small">⏱ Repartir en audio</button>
+        <button id="sortAscBtn" class="small">🔢 Ord. Ascendente</button>
+        <button id="sortDescBtn" class="small">🔢 Ord. Descendente</button>
+        <button id="clearAllBtn" class="small danger">Vaciar</button>
       </div>
     </div>
 
-    <!-- PANEL 3: GUION Y TIMING MANUAL -->
+    <!-- 3. GUION Y TIMING MANUAL -->
     <div class="card">
-      <h2>3. Sincronización por Guion / Tiempos <span class="badge">Avanzado</span></h2>
-      <div class="info-note" style="margin-bottom:8px;">
-        Ingresa o modifica libremente los tiempos en formato Markdown <code>| Tiempo | Narración | Visual |</code>:
+      <h2>3. Guion y Sincronización</h2>
+      <div class="info-note" style="margin-bottom:6px;">
+        Edita o pega los tiempos en Markdown <code>| Tiempo | Narración | Visual |</code>:
       </div>
-      <textarea id="scriptInput" rows="6" placeholder="| 0:00 | Texto hablado... | Descripción de la escena... |" style="width:100%;resize:vertical;padding:8px;border-radius:8px;border:1px solid var(--border);background:var(--bg);color:var(--text);font-size:12px;font-family:monospace;"></textarea>
+      <textarea id="scriptInput" rows="5" placeholder="| 0:00 | Texto de voz... | Descripción de imagen... |" style="width:100%;resize:vertical;padding:8px;border-radius:8px;border:1px solid var(--border);background:var(--bg);color:var(--text);font-size:12px;font-family:monospace;"></textarea>
       
-      <div class="row" style="margin-top:8px;">
-        <button id="applyScriptBtn" class="primary small" style="width:100%;">📑 Leer Guion y Organizar Tiempos/Visuales</button>
-      </div>
+      <button id="applyScriptBtn" class="primary small" style="width:100%; margin-top:8px;">📑 Leer Guion y Ajustar Tiempos</button>
       <div class="status" id="syncStatus"></div>
-    </div>
-
-    <!-- PANEL 4: LÍNEA DE TIEMPO Y EDICIÓN -->
-    <div class="card">
-      <h2>4. Línea de tiempo y Control Manual <span class="badge" id="clipCount">0 elementos</span></h2>
-      
-      <div class="timeline-container">
-        <canvas id="waveformCanvas" class="waveform-box"></canvas>
-        <div class="track-timeline" id="trackTimeline"></div>
-      </div>
-
-      <ul id="clipList" style="margin-top:10px;"></ul>
-      <div class="empty-hint" id="emptyHint">Aún no has agregado archivos.</div>
     </div>
   </div>
 
-  <!-- COLUMNA DERECHA -->
+  <!-- COLUMNA DERECHA: REPRODUCTOR, LÍNEA DE TIEMPO Y EXPORTACIÓN -->
   <div class="col">
+    <!-- 4. LÍNEA DE TIEMPO VISUAL -->
     <div class="card">
-      <h2>Formato y Calidad</h2>
-      <div class="row">
+      <h2>Línea de Tiempo Visual <span class="badge" id="clipCount">0 elementos</span></h2>
+      <div class="timeline-container">
+        <div style="font-size:10px; color:var(--muted); margin-bottom:4px;">Onda de voz:</div>
+        <canvas id="waveformCanvas" class="waveform-box"></canvas>
+        <div style="font-size:10px; color:var(--muted); margin-bottom:4px;">Secuencia de imágenes/videos:</div>
+        <div class="track-timeline" id="trackTimeline"></div>
+      </div>
+
+      <div style="margin-top:10px;">
+        <ul id="clipList"></ul>
+        <div class="empty-hint" id="emptyHint">Sube imágenes o videos para comenzar.</div>
+      </div>
+    </div>
+
+    <!-- 5. VISTA PREVIA Y CONTROLES -->
+    <div class="card">
+      <h2>Vista Previa</h2>
+      <div class="previewBox" id="previewBox"><canvas id="canvas" width="1920" height="1080"></canvas></div>
+      
+      <div class="playbar">
+        <div class="track" id="track"><div class="fill" id="trackFill"></div></div>
+        <div class="timecodes"><span id="timeNow">0:00</span><span id="timeTotal">0:00</span></div>
+      </div>
+
+      <div class="row" style="margin-top:10px;">
+        <button id="playBtn" class="primary">▶ Reproducir</button>
+        <button id="stopBtn">⏹ Detener</button>
+      </div>
+
+      <!-- BOTÓN DE DESCARGAR VIDEO -->
+      <div style="margin-top:14px; border-top:1px solid var(--border); padding-top:12px;">
+        <button id="exportBtn" class="success" style="width:100%;">📥 Descargar Video Editado (MP4 / WebM)</button>
+        <div class="status" id="exportStatus"></div>
+      </div>
+    </div>
+
+    <!-- 6. OPCIONES Y FORMATO -->
+    <div class="card">
+      <h2>Ajustes de Video y Movimiento</h2>
+      <div class="row" style="margin-bottom:10px;">
         <select id="aspectSelect" style="flex:1;">
           <option value="16:9">16:9 — Horizontal (YouTube)</option>
           <option value="9:16">9:16 — Vertical (Reels/TikTok/Shorts)</option>
           <option value="1:1">1:1 — Cuadrado (Instagram)</option>
         </select>
-        <select id="qualitySelect" style="flex:1;">
-          <option value="720p">720p (HD)</option>
-          <option value="1080p" selected>1080p (Full HD)</option>
-        </select>
-      </div>
-    </div>
-
-    <div class="card">
-      <h2>Movimiento de Cámara (Ken Burns)</h2>
-      <div style="font-size:12px; color:var(--muted); margin-bottom:4px;">Intensidad de Zoom</div>
-      <div class="slider-container">
-        <input type="range" id="zoomIntensity" min="0.05" max="0.5" step="0.01" value="0.18">
-      </div>
-      <div class="checkbox-grid">
-        <label class="checkbox-btn"><input type="checkbox" class="mov-check" value="in" checked> 🔍 Acercar</label>
-        <label class="checkbox-btn"><input type="checkbox" class="mov-check" value="out" checked> 🔍 Alejar</label>
-        <label class="checkbox-btn"><input type="checkbox" class="mov-check" value="pan-lr" checked> ➔ Paneo Der</label>
-        <label class="checkbox-btn"><input type="checkbox" class="mov-check" value="pan-rl"> ⬅ Paneo Izq</label>
-      </div>
-      <button id="applyCycleBtn" class="primary" style="width:100%; margin-top:8px;">🔄 Aplicar movimientos a todas las imágenes</button>
-    </div>
-
-    <div class="card">
-      <h2>Vista Previa</h2>
-      <div class="previewBox" id="previewBox"><canvas id="canvas" width="1920" height="1080"></canvas></div>
-      <div class="playbar">
-        <div class="track" id="track"><div class="fill" id="trackFill"></div></div>
-        <div class="timecodes"><span id="timeNow">0:00</span><span id="timeTotal">0:00</span></div>
-      </div>
-      <div class="row" style="margin-top:8px;">
-        <button id="playBtn" class="primary">▶ Reproducir</button>
-        <button id="stopBtn">⏹ Detener</button>
-      </div>
-    </div>
-
-    <div class="card">
-      <h2>Filtro de Color</h2>
-      <div class="row">
         <select id="globalFilterSelect" style="flex:1;">
-          <option value="none">🎨 Normal</option>
+          <option value="none">🎨 Filtro: Normal</option>
           <option value="vintage">📜 Vintage</option>
           <option value="vivid">✨ Vívido</option>
           <option value="bw">⚫ Blanco y Negro</option>
-          <option value="sepia">🟤 Sepia</option>
         </select>
-        <button id="applyGlobalFilterBtn" class="small">Aplicar a todo</button>
       </div>
+
+      <div style="font-size:12px; color:var(--muted); margin-bottom:4px;">Movimientos de cámara (Ken Burns)</div>
+      <div class="checkbox-grid">
+        <label class="checkbox-btn"><input type="checkbox" class="mov-check" value="in" checked> Zoom In</label>
+        <label class="checkbox-btn"><input type="checkbox" class="mov-check" value="out" checked> Zoom Out</label>
+        <label class="checkbox-btn"><input type="checkbox" class="mov-check" value="pan-lr" checked> Paneo Der</label>
+        <label class="checkbox-btn"><input type="checkbox" class="mov-check" value="pan-rl"> Paneo Izq</label>
+      </div>
+      <button id="applyCycleBtn" class="small" style="width:100%;">🔄 Aplicar Movimientos</button>
     </div>
   </div>
 </div>
@@ -221,22 +215,21 @@
   const emptyHint = document.getElementById('emptyHint');
   const playBtn = document.getElementById('playBtn');
   const stopBtn = document.getElementById('stopBtn');
+  const exportBtn = document.getElementById('exportBtn');
+  const exportStatus = document.getElementById('exportStatus');
   const track = document.getElementById('track');
   const trackFill = document.getElementById('trackFill');
   const timeNow = document.getElementById('timeNow');
   const timeTotal = document.getElementById('timeTotal');
   const aspectSelect = document.getElementById('aspectSelect');
-  const qualitySelect = document.getElementById('qualitySelect');
   const previewBox = document.getElementById('previewBox');
   const autoDistBtn = document.getElementById('autoDistBtn');
   const clearAllBtn = document.getElementById('clearAllBtn');
   const scriptInput = document.getElementById('scriptInput');
   const applyScriptBtn = document.getElementById('applyScriptBtn');
   const syncStatus = document.getElementById('syncStatus');
-  const zoomIntensity = document.getElementById('zoomIntensity');
   const applyCycleBtn = document.getElementById('applyCycleBtn');
   const globalFilterSelect = document.getElementById('globalFilterSelect');
-  const applyGlobalFilterBtn = document.getElementById('applyGlobalFilterBtn');
   const waveformCanvas = document.getElementById('waveformCanvas');
   const trackTimeline = document.getElementById('trackTimeline');
 
@@ -253,7 +246,7 @@
   function uid(){ return Math.random().toString(36).slice(2,9); }
 
   function buildKB(style){
-    const intensity = parseFloat(zoomIntensity.value) || 0.18;
+    const intensity = 0.18;
     switch(style){
       case 'in': return {s0:1, s1:1+intensity*1.6, x0:0.5, y0:0.5, x1:0.5, y1:0.5};
       case 'out': return {s0:1+intensity*1.6, s1:1, x0:0.5, y0:0.5, x1:0.5, y1:0.5};
@@ -283,11 +276,7 @@
 
   function updateResolution(){
     const aspect = aspectSelect.value;
-    const RES_MAP = {
-      '16:9': [1920, 1080],
-      '9:16': [1080, 1920],
-      '1:1': [1080, 1080]
-    };
+    const RES_MAP = { '16:9': [1920, 1080], '9:16': [1080, 1920], '1:1': [1080, 1080] };
     const [w, h] = RES_MAP[aspect] || [1920, 1080];
     canvas.width = w; canvas.height = h;
     previewBox.style.aspectRatio = (w/h);
@@ -303,7 +292,7 @@
     const height = waveformCanvas.height = waveformCanvas.offsetHeight * window.devicePixelRatio;
     wCtx.clearRect(0, 0, width, height);
     const rawData = buffer.getChannelData(0);
-    const samples = 250;
+    const samples = 200;
     const blockSz = Math.floor(rawData.length / samples);
     wCtx.fillStyle = '#7c5cff';
     const barWidth = width / samples;
@@ -334,7 +323,7 @@
       audioLoaded = true;
       audioDuration = decodedData.duration;
       audioBufferData = decodedData;
-      audioStatus.textContent = '✅ Audio: ' + f.name + ' (' + fmt(audioDuration) + ')';
+      audioStatus.textContent = '✅ Audio listo: ' + f.name + ' (' + fmt(audioDuration) + ')';
       tempCtx.close();
       renderWaveform(audioBufferData);
       updateTotals();
@@ -342,25 +331,25 @@
       audioEl.onloadedmetadata = ()=>{
         audioLoaded = true;
         audioDuration = audioEl.duration;
-        audioStatus.textContent = '✅ Audio: ' + f.name + ' (' + fmt(audioDuration) + ')';
+        audioStatus.textContent = '✅ Audio listo: ' + f.name + ' (' + fmt(audioDuration) + ')';
         updateTotals();
       };
     }
   });
 
-  // INTELIGENCIA ARTIFICIAL DE GOOGLE GEMINI (GRATUITO)
+  // ANALIZAR AUDIO CON GEMINI IA
   autoSyncAudioBtn.addEventListener('click', async () => {
     if (!currentAudioFile) return;
 
     let apiKey = localStorage.getItem('gemini_api_key');
     if (!apiKey) {
-      apiKey = prompt('Por favor, ingresa tu API Key GRATUITA de Google Gemini (aistudio.google.com):');
+      apiKey = prompt('Ingresa tu API Key GRATUITA de Google Gemini (aistudio.google.com):');
       if (apiKey && apiKey.trim() !== '') {
         localStorage.setItem('gemini_api_key', apiKey.trim());
       } else return;
     }
 
-    autoSyncAudioBtn.textContent = '⏳ Procesando voz con Gemini IA...';
+    autoSyncAudioBtn.textContent = '⏳ Analizando audio...';
     autoSyncAudioBtn.disabled = true;
 
     try {
@@ -368,7 +357,6 @@
       reader.readAsDataURL(currentAudioFile);
       reader.onload = async () => {
         const base64Audio = reader.result.split(',')[1];
-        
         const promptText = "Escucha este audio. Transcríbelo y divídelo en bloques lógicos de 3 a 6 segundos. Devuelve ÚNICAMENTE una tabla en Markdown con este formato exacto:\n| Tiempo | Narración | Visual |\n\nEjemplo:\n| 0:00 | Texto de la voz... | Imagen sugerida... |";
 
         const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
@@ -390,7 +378,7 @@
         const aiText = data.candidates[0].content.parts[0].text;
         scriptInput.value = aiText;
         applyScriptBtn.click();
-        autoSyncAudioBtn.textContent = '✅ Sincronización Completada';
+        autoSyncAudioBtn.textContent = '✅ Análisis Finalizado';
         autoSyncAudioBtn.disabled = false;
       };
     } catch (err) {
@@ -401,7 +389,7 @@
     }
   });
 
-  // APLICAR GUION MANUAL O AUTOMÁTICO
+  // LEER GUION
   applyScriptBtn.addEventListener('click', ()=>{
     const rawText = scriptInput.value.trim();
     if(!rawText){ syncStatus.textContent = '❌ El texto está vacío.'; return; }
@@ -429,7 +417,7 @@
     });
 
     if(parsedEntries.length === 0){
-      syncStatus.textContent = '❌ No se detectaron tiempos de formato 0:00.';
+      syncStatus.textContent = '❌ No se detectaron tiempos (ej. 0:00).';
       return;
     }
 
@@ -441,58 +429,28 @@
         let end = (i + 1 < parsedEntries.length) ? parsedEntries[i+1].time : (audioLoaded ? audioDuration : start + 5);
         if(end <= start) end = start + 4;
         clips[i].duration = Math.max(0.1, end - start);
-        clips[i].scriptHint = `💬 ${parsedEntries[i].narration} | 🖼️ ${parsedEntries[i].visualDesc}`;
+        clips[i].scriptHint = `💬 ${parsedEntries[i].narration}`;
       }
     }
 
     renderClipList();
-    syncStatus.textContent = `✅ Sincronizados ${Math.min(clips.length, parsedEntries.length)} elementos.`;
+    syncStatus.textContent = `✅ Tiempos ajustados correctamente.`;
   });
 
+  // RENDERIZAR LÍNEA DE TIEMPO VISUAL
   function renderTimelineVisual() {
     trackTimeline.innerHTML = '';
     const totalDur = totalDuration();
     if(totalDur <= 0 || clips.length === 0) return;
 
-    const trackWidth = trackTimeline.clientWidth || 400;
-    let accTime = 0;
-
     clips.forEach((c, idx) => {
-      const leftPx = (accTime / totalDur) * trackWidth;
-      const widthPx = Math.max(20, (c.duration / totalDur) * trackWidth);
-
       const block = document.createElement('div');
       block.className = 'timeline-block';
-      block.style.left = leftPx + 'px';
-      block.style.width = widthPx + 'px';
-      block.innerHTML = `<span>${idx + 1}</span>`;
-
-      const handleRight = document.createElement('div');
-      handleRight.className = 'handle right';
-      handleRight.onmousedown = (e) => {
-        e.stopPropagation();
-        const startX = e.clientX;
-        const initialDur = c.duration;
-
-        function onMouseMove(moveEvent) {
-          const dx = moveEvent.clientX - startX;
-          const timeDelta = (dx / trackWidth) * totalDur;
-          c.duration = Math.max(0.1, initialDur + timeDelta);
-          renderClipList();
-        }
-
-        function onMouseUp() {
-          window.removeEventListener('mousemove', onMouseMove);
-          window.removeEventListener('mouseup', onMouseUp);
-        }
-
-        window.addEventListener('mousemove', onMouseMove);
-        window.addEventListener('mouseup', onMouseUp);
-      };
-
-      block.appendChild(handleRight);
+      const widthPct = (c.duration / totalDur) * 100;
+      block.style.width = Math.max(25, widthPct) + '%';
+      block.title = `${idx + 1}. ${c.name} (${c.duration.toFixed(1)}s)`;
+      block.innerHTML = `<span>#${idx + 1} (${c.duration.toFixed(1)}s)</span>`;
       trackTimeline.appendChild(block);
-      accTime += c.duration;
     });
   }
 
@@ -504,13 +462,13 @@
         const video = document.createElement('video');
         video.src = url; video.muted = true;
         video.onloadedmetadata = ()=>{
-          clips.push({ id: uid(), name: f.name, type:'video', video, url, duration: video.duration||3, kbStyle:'static', kb: buildKB('static'), filter:'none', scriptHint:'' });
+          clips.push({ id: uid(), name: f.name, type:'video', video, url, duration: video.duration||3, kbStyle:'static', kb: buildKB('static'), scriptHint:'' });
           renderClipList();
         };
       } else {
         const img = new Image();
         img.onload = ()=>{
-          clips.push({ id: uid(), name: f.name, type:'image', img, url, duration: 3, kbStyle:'pan-lr', kb: buildKB('pan-lr'), filter:'none', scriptHint:'' });
+          clips.push({ id: uid(), name: f.name, type:'image', img, url, duration: 3, kbStyle:'pan-lr', kb: buildKB('pan-lr'), scriptHint:'' });
           renderClipList();
         };
         img.src = url;
@@ -562,12 +520,6 @@
 
   clearAllBtn.addEventListener('click', ()=>{ clips = []; renderClipList(); });
 
-  applyGlobalFilterBtn.addEventListener('click', ()=>{
-    const val = globalFilterSelect.value;
-    clips.forEach(c => c.filter = val);
-    renderClipList();
-  });
-
   applyCycleBtn.addEventListener('click', ()=>{
     const checked = Array.from(document.querySelectorAll('.mov-check:checked')).map(cb => cb.value);
     if(checked.length === 0) return;
@@ -609,7 +561,6 @@
       const ctrlLine = document.createElement('div');
       ctrlLine.className = 'controls-line';
 
-      // EDICIÓN MANUAL DE TIEMPO
       const durIn = document.createElement('input');
       durIn.type = 'number'; durIn.value = c.duration.toFixed(2); durIn.step = '0.1'; durIn.min = '0.1';
       durIn.onchange = e => { c.duration = Math.max(0.1, parseFloat(e.target.value)||1); updateTotals(); };
@@ -673,10 +624,10 @@
     const { clip, progress } = item;
     ctx.save();
     
-    if(clip.filter === 'vintage') ctx.filter = 'sepia(0.4) contrast(1.1)';
-    else if(clip.filter === 'vivid') ctx.filter = 'saturate(1.6)';
-    else if(clip.filter === 'bw') ctx.filter = 'grayscale(1)';
-    else if(clip.filter === 'sepia') ctx.filter = 'sepia(1)';
+    const filter = globalFilterSelect.value;
+    if(filter === 'vintage') ctx.filter = 'sepia(0.4) contrast(1.1)';
+    else if(filter === 'vivid') ctx.filter = 'saturate(1.6)';
+    else if(filter === 'bw') ctx.filter = 'grayscale(1)';
 
     const scale = clip.kb.s0 + (clip.kb.s1 - clip.kb.s0) * progress;
     const cx = clip.kb.x0 + (clip.kb.x1 - clip.kb.x0) * progress;
@@ -753,6 +704,78 @@
     trackFill.style.width = (pos * 100) + '%';
     timeNow.textContent = fmt(currentTime);
     drawFrame(currentTime);
+  });
+
+  // FUNCIONALIDAD DE EXPORTAR Y DESCARGAR VIDEO
+  exportBtn.addEventListener('click', async () => {
+    if(clips.length === 0){
+      alert('Sube al menos una imagen o video antes de exportar.');
+      return;
+    }
+
+    exportBtn.disabled = true;
+    exportStatus.textContent = '⏳ Procesando video... Por favor espera.';
+    stopBtn.click();
+
+    const streamTracks = [];
+    const canvasStream = canvas.captureStream(30);
+    canvasStream.getTracks().forEach(t => streamTracks.push(t));
+
+    if (audioLoaded && audioEl.src) {
+      try {
+        const audioStream = audioEl.captureStream ? audioEl.captureStream() : audioEl.mozCaptureStream();
+        if (audioStream) {
+          audioStream.getAudioTracks().forEach(t => streamTracks.push(t));
+        }
+      } catch (err) {
+        console.warn('No se pudo adjuntar el stream de audio directo:', err);
+      }
+    }
+
+    const combinedStream = new MediaStream(streamTracks);
+    let recorder;
+    try {
+      recorder = new MediaRecorder(combinedStream, { mimeType: 'video/webm;codecs=vp9,opus' });
+    } catch (e) {
+      recorder = new MediaRecorder(combinedStream);
+    }
+
+    const chunks = [];
+    recorder.ondataavailable = e => { if (e.data.size > 0) chunks.push(e.data); };
+    
+    recorder.onstop = () => {
+      const blob = new Blob(chunks, { type: recorder.mimeType || 'video/webm' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'video_editado.webm';
+      a.click();
+      
+      exportStatus.textContent = '✅ ¡Video descargado con éxito!';
+      exportBtn.disabled = false;
+    };
+
+    recorder.start();
+    currentTime = 0;
+    if (audioLoaded) { audioEl.currentTime = 0; audioEl.play(); }
+
+    const totalDur = totalDuration();
+    const startTime = performance.now();
+
+    function recordLoop() {
+      const elapsed = (performance.now() - startTime) / 1000;
+      currentTime = elapsed;
+
+      if (currentTime >= totalDur) {
+        recorder.stop();
+        if (audioLoaded) audioEl.pause();
+        return;
+      }
+
+      drawFrame(currentTime);
+      requestAnimationFrame(recordLoop);
+    }
+    requestAnimationFrame(recordLoop);
   });
 
   updateResolution();
