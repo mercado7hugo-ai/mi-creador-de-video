@@ -43,7 +43,6 @@
   .timeline-container { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 10px; margin-top: 10px; position: relative; }
   .waveform-box { width: 100%; height: 50px; background: #111; border-radius: 6px; display: block; margin-bottom: 6px; }
   .track-timeline { height: 36px; background: rgba(124, 92, 255, 0.08); border: 1px solid var(--border); border-radius: 6px; position: relative; overflow-x: auto; overflow-y: hidden; cursor: crosshair; }
-  .timeline-block { position: absolute; top: 2px; bottom: 2px; background: var(--accent); opacity: 0.85; border-radius: 4px; border: 1px solid #fff; display: flex; align-items: center; justify-content: space-between; padding: 0 6px; color: #fff; font-size: 10px; font-weight: bold; white-space: nowrap; overflow: hidden; cursor: grab; user-select: none; }
   
   .playbar{ margin-top:10px; }
   .track{ height:6px; background:var(--border); border-radius:4px; position:relative; cursor:pointer; margin:8px 0; }
@@ -79,7 +78,6 @@
       <h2>2. Medios (Imágenes, Videos o Carpeta)</h2>
       <div class="dropzone" id="imgDrop">🖼 / 🎥 Sube imágenes, videos o carpeta completa</div>
       <input type="file" id="imgInput" accept="image/*,video/*" multiple webkitdirectory directory>
-      <input type="file" id="replaceInput" accept="image/*,video/*">
 
       <div class="row" style="margin-top:10px;">
         <button id="autoDistBtn" class="small">⏱ Repartir por igual</button>
@@ -157,7 +155,6 @@
   const audioDrop = document.getElementById('audioDrop');
   const audioStatus = document.getElementById('audioStatus');
   const imgInput = document.getElementById('imgInput');
-  const replaceInput = document.getElementById('replaceInput');
   const imgDrop = document.getElementById('imgDrop');
   const clipList = document.getElementById('clipList');
   const clipCount = document.getElementById('clipCount');
@@ -177,8 +174,6 @@
   const applyCycleBtn = document.getElementById('applyCycleBtn');
   const exportBtn = document.getElementById('exportBtn');
   const exportStatus = document.getElementById('exportStatus');
-  const waveformCanvas = document.getElementById('waveformCanvas');
-  const trackTimeline = document.getElementById('trackTimeline');
 
   const RES = {
     '16:9': {'720p':[1280,720], '1080p':[1920,1080]},
@@ -191,18 +186,18 @@
   let audioDuration = 0;
   let playing = false;
   let currentTime = 0;
-  let clipToReplaceIndex = null;
+  let audioCtx, audioDest;
 
   function uid(){ return Math.random().toString(36).slice(2,9); }
 
   function buildKB(style){
     const intensity = parseFloat(zoomIntensity.value) || 0.18;
     switch(style){
-      case 'in': return {s0:1, s1:1+intensity*1.6, x0:0.5, y0:0.5, x1:0.5, y1:0.5};
-      case 'out': return {s0:1+intensity*1.6, s1:1, x0:0.5, y0:0.5, x1:0.5, y1:0.5};
-      case 'pan-lr': return {s0:1+intensity, s1:1+intensity, x0:0.2, y0:0.5, x1:0.8, y1:0.5};
-      case 'pan-rl': return {s0:1+intensity, s1:1+intensity, x0:0.8, y0:0.5, x1:0.2, y1:0.5};
-      default: return {s0:1, s1:1, x0:0.5, y0:0.5, x1:0.5, y1:0.5};
+      case 'in': return {s0:1, s1:1+intensity*1.6};
+      case 'out': return {s0:1+intensity*1.6, s1:1};
+      case 'pan-lr': return {s0:1+intensity, s1:1+intensity};
+      case 'pan-rl': return {s0:1+intensity, s1:1+intensity};
+      default: return {s0:1, s1:1};
     }
   }
 
@@ -290,7 +285,7 @@
         <div class="meta">
           <div class="name">${idx+1}. ${c.name}</div>
           <div class="controls-line">
-            Seg: <input type="number" value="${c.duration.toFixed(1)}" step="0.1" min="0.1" style="width:55px;" onchange="this.blur()">
+            Seg: <input type="number" value="${c.duration.toFixed(1)}" step="0.1" min="0.1" style="width:55px;">
             <button class="small danger" onclick="clips.splice(${idx},1); renderClipList();">✕</button>
           </div>
         </div>`;
@@ -335,10 +330,26 @@
     ctx.drawImage(media, x, y, rw, rh);
   }
 
+  function setupAudioCapture(){
+    if(!audioCtx && audioLoaded){
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      const source = audioCtx.createMediaElementSource(audioEl);
+      audioDest = audioCtx.createMediaStreamDestination();
+      source.connect(audioDest);
+      source.connect(audioCtx.destination);
+    }
+    if(audioCtx && audioCtx.state === 'suspended'){
+      audioCtx.resume();
+    }
+  }
+
   playBtn.addEventListener('click', ()=>{
     if(playing) return;
     playing = true;
-    if(audioLoaded) audioEl.play();
+    if(audioLoaded){
+      setupAudioCapture();
+      audioEl.play();
+    }
     let last = performance.now();
     function loop(now){
       if(!playing) return;
@@ -360,31 +371,33 @@
     timeNow.textContent = fmt(0); trackFill.style.width = '0%'; drawFrame(0);
   });
 
-  // EXPORTACIÓN REAL CON MEDIARECORDER Y DESCARGA AUTOMÁTICA DE VIDEO
+  // EXPORTACIÓN REAL CON MEDIARECORDER Y AUDIOESTRUCTURA ROBUSTA
   exportBtn.addEventListener('click', async ()=>{
     if(clips.length === 0){ alert('Agrega al menos un elemento.'); return; }
     exportBtn.disabled = true;
-    exportStatus.textContent = '⏳ Grabando video en tiempo real...';
+    exportStatus.textContent = '⏳ Preparando exportación de video...';
 
     const totalDur = totalDuration();
     const stream = canvas.captureStream(30);
 
-    if(audioLoaded && audioEl.captureStream){
-      try {
-        const audioStream = audioEl.captureStream();
-        const audioTrack = audioStream.getAudioTracks()[0];
+    if(audioLoaded){
+      setupAudioCapture();
+      if(audioDest && audioDest.stream){
+        const audioTrack = audioDest.stream.getAudioTracks()[0];
         if(audioTrack) stream.addTrack(audioTrack);
-      } catch(e){}
+      }
     }
 
-    let mime = 'video/webm;codecs=vp9';
-    if(!MediaRecorder.isTypeSupported(mime)) mime = 'video/webm';
+    let mime = 'video/webm;codecs=vp9,opus';
+    if(!MediaRecorder.isTypeSupported(mime)){
+      mime = 'video/webm';
+    }
 
     let recorder;
     try {
       recorder = new MediaRecorder(stream, { mimeType: mime });
-    } catch(e) {
-      alert('Tu navegador no soporta la grabación directa.');
+    } catch(e){
+      alert('Tu navegador no permite grabar video directamente.');
       exportBtn.disabled = false;
       return;
     }
@@ -409,7 +422,10 @@
 
     recorder.start();
     currentTime = 0;
-    if(audioLoaded){ audioEl.currentTime = 0; audioEl.play(); }
+    if(audioLoaded){
+      audioEl.currentTime = 0;
+      audioEl.play();
+    }
     playing = true;
     let last = performance.now();
 
@@ -425,7 +441,7 @@
         drawFrame(currentTime);
         setTimeout(() => {
           if(recorder.state !== 'inactive') recorder.stop();
-        }, 300);
+        }, 400);
         return;
       }
 
