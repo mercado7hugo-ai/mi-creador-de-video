@@ -710,352 +710,187 @@
         <option value="out" ${c.kbStyle==='out'?'selected':''}>Zoom Out</option>
         <option value="static" ${c.kbStyle==='static'?'selected':''}>Estático</option>
       `;
-      selKB.onchange = e => { c.kbStyle = e.target.value; c.kb = buildKB(c.kbStyle); drawFrame(currentTime); };
-
-      const selFil = document.createElement('select');
-      selFil.innerHTML = `
-        <option value="none" ${c.filter==='none'?'selected':''}>🎨 Normal</option>
-        <option value="vintage" ${c.filter==='vintage'?'selected':''}>📜 Vintage</option>
-        <option value="vivid" ${c.filter==='vivid'?'selected':''}>✨ Vívido</option>
-        <option value="warm" ${c.filter==='warm'?'selected':''}>🔥 Cálido</option>
-        <option value="cool" ${c.filter==='cool'?'selected':''}>❄️ Frío</option>
-        <option value="bw" ${c.filter==='bw'?'selected':''}>⚫ B/N</option>
-        <option value="sepia" ${c.filter==='sepia'?'selected':''}>🟤 Sepia</option>
-      `;
-      selFil.onchange = e => { c.filter = e.target.value; drawFrame(currentTime); };
-
-      const selTr = document.createElement('select');
-      selTr.innerHTML = `
-        <option value="none" ${c.transition==='none'?'selected':''}>✨ Sin trans.</option>
-        <option value="barrido-rasgado" ${c.transition==='barrido-rasgado'?'selected':''}>✂️ Barrido rasgado</option>
-        <option value="combinar" ${c.transition==='combinar'?'selected':''}>🧩 Combinar</option>
-        <option value="desvanecimiento-acrilico" ${c.transition==='desvanecimiento-acrilico'?'selected':''}>🧊 Acrílico</option>
-        <option value="fundido-cruzado" ${c.transition==='fundido-cruzado'?'selected':''}>🎞️ Fundido cruzado</option>
-        <option value="barrido-desvanecimiento" ${c.transition==='barrido-desvanecimiento'?'selected':''}>💨 Barrido desv.</option>
-        <option value="cambio-desvanecimiento" ${c.transition==='cambio-desvanecimiento'?'selected':''}>🔄 Cambio desv.</option>
-        <option value="desvanecimiento-progresivo" ${c.transition==='desvanecimiento-progresivo'?'selected':''}>📶 Desv. progresivo</option>
-        <option value="desvanecimiento-tenue" ${c.transition==='desvanecimiento-tenue'?'selected':''}>🌫️ Desv. tenue</option>
-      `;
-      selTr.onchange = e => { c.transition = e.target.value; drawFrame(currentTime); };
-
-      const replaceBtn = document.createElement('button');
-      replaceBtn.className = 'small'; replaceBtn.textContent = '🔄 Cambiar';
-      replaceBtn.onclick = () => { clipToReplaceIndex = idx; replaceInput.click(); };
-
-      const delBtn = document.createElement('button');
-      delBtn.className = 'small danger'; delBtn.textContent = '✕';
-      delBtn.onclick = () => { clips.splice(idx,1); renderClipList(); };
-
-      ctrlLine.appendChild(document.createTextNode('Seg:'));
+      selKB.onchange = e => { c.kbStyle = e.target.value; c.kb = buildKB(e.target.value); };
       ctrlLine.appendChild(durIn);
       ctrlLine.appendChild(selKB);
-      ctrlLine.appendChild(selFil);
-      ctrlLine.appendChild(selTr);
-      ctrlLine.appendChild(replaceBtn);
+
+      const delBtn = document.createElement('button');
+      delBtn.className = 'small danger'; delBtn.textContent = '🗑️';
+      delBtn.onclick = () => { clips.splice(idx, 1); renderClipList(); };
       ctrlLine.appendChild(delBtn);
+
+      const repBtn = document.createElement('button');
+      repBtn.className = 'small'; repBtn.textContent = '🔄 Cambiar';
+      repBtn.onclick = () => { clipToReplaceIndex = idx; replaceInput.click(); };
+      ctrlLine.appendChild(repBtn);
 
       meta.appendChild(topRow);
       meta.appendChild(ctrlLine);
-
       li.appendChild(thumb);
       li.appendChild(meta);
       clipList.appendChild(li);
     });
-
+    renderTimelineVisual();
     updateTotals();
   }
 
   function updateTotals(){
-    const t = totalDuration();
-    timeTotal.textContent = fmt(t);
-    renderTimelineVisual();
-    if(!playing) drawFrame(currentTime);
-  }
-
-  function getClipAtTime(t){
-    let acc = 0;
-    for(let i=0; i<clips.length; i++){
-      const dur = clips[i].duration;
-      if(t >= acc && t < acc + dur){
-        return { clip: clips[i], index: i, localT: t - acc, progress: (t - acc)/dur };
-      }
-      acc += dur;
-    }
-    return null;
-  }
-
-  function applyEasing(p, factor) {
-    if (factor <= 0) return p;
-    const eased = p < 0.5 ? 2 * p * p : 1 - Math.pow(-2 * p + 2, 2) / 2;
-    return p + (eased - p) * factor;
-  }
-
-  function drawSingleClip(clip, progress, W, H, localT) {
-    const media = clip.type === 'image' ? clip.img : clip.video;
-    if(!media) return;
-
-    ctx.save();
-    ctx.filter = FILTER_CSS[clip.filter] || 'none';
-
-    const smoothnessFactor = parseFloat(zoomSmoothness.value) || 0;
-    const easedProgress = applyEasing(progress, smoothnessFactor);
-
-    const kb = clip.kb || buildKB('static');
-    const scale = kb.s0 + (kb.s1 - kb.s0) * easedProgress;
-    const cx = kb.x0 + (kb.x1 - kb.x0) * easedProgress;
-    const cy = kb.y0 + (kb.y1 - kb.y0) * easedProgress;
-
-    const mw = media.videoWidth || media.width || W;
-    const mh = media.videoHeight || media.height || H;
-    const aspectMedia = mw / mh;
-    const aspectCanvas = W / H;
-
-    let renderW, renderH;
-    if(aspectMedia > aspectCanvas){
-      renderH = H * scale; 
-      renderW = renderH * aspectMedia;
-    } else {
-      renderW = W * scale; 
-      renderH = renderW / aspectMedia;
-    }
-
-    const minX = W - renderW;
-    const maxX = 0;
-    const minY = H - renderH;
-    const maxY = 0;
-
-    let x = (W / 2) - (cx * renderW);
-    let y = (H / 2) - (cy * renderH);
-
-    if (x < minX) x = minX;
-    if (x > maxX) x = maxX;
-    if (y < minY) y = minY;
-    if (y > maxY) y = maxY;
-
-    ctx.drawImage(media, x, y, renderW, renderH);
-    ctx.restore();
+    timeTotal.textContent = fmt(totalDuration());
   }
 
   function drawFrame(t){
-    const info = getClipAtTime(t);
-    const W = canvas.width, H = canvas.height;
-    ctx.clearRect(0,0,W,H);
+    ctx.fillStyle = '#000';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    if(clips.length === 0) return;
 
-    if(!info){
-      ctx.fillStyle = '#000'; ctx.fillRect(0,0,W,H);
-      return;
-    }
+    let acc = 0;
+    let currentClip = clips[0];
+    let localT = 0;
 
-    const { clip, index, localT, progress } = info;
-    const transWindow = 0.6;
-
-    if (localT > clip.duration - transWindow && index + 1 < clips.length && clip.transition !== 'none') {
-      const nextClip = clips[index + 1];
-      const tp = (localT - (clip.duration - transWindow)) / transWindow;
-
-      drawSingleClip(clip, progress, W, H, localT);
-
-      ctx.save();
-      const tr = clip.transition;
-
-      if (tr === 'fundido-cruzado' || tr === 'desvanecimiento-tenue') {
-        ctx.globalAlpha = tp;
-        drawSingleClip(nextClip, 0, W, H, 0);
-      } else if (tr === 'barrido-rasgado') {
-        ctx.beginPath();
-        const splitX = W * tp;
-        ctx.rect(0, 0, splitX, H);
-        ctx.clip();
-        drawSingleClip(nextClip, 0, W, H, 0);
-      } else if (tr === 'combinar') {
-        ctx.globalAlpha = tp;
-        const scaleFactor = 0.5 + 0.5 * tp;
-        ctx.translate(W/2, H/2);
-        ctx.scale(scaleFactor, scaleFactor);
-        ctx.translate(-W/2, -H/2);
-        drawSingleClip(nextClip, 0, W, H, 0);
-      } else if (tr === 'desvanecimiento-acrilico') {
-        ctx.filter = `blur(${Math.max(0, (1 - tp)*12)}px)`;
-        ctx.globalAlpha = tp;
-        drawSingleClip(nextClip, 0, W, H, 0);
-      } else if (tr === 'barrido-desvanecimiento') {
-        ctx.beginPath();
-        ctx.rect(W * (1 - tp), 0, W * tp, H);
-        ctx.clip();
-        drawSingleClip(nextClip, 0, W, H, 0);
-      } else if (tr === 'cambio-desvanecimiento') {
-        ctx.globalAlpha = tp;
-        ctx.translate((1 - tp) * 50, 0);
-        drawSingleClip(nextClip, 0, W, H, 0);
-      } else if (tr === 'desvanecimiento-progresivo') {
-        ctx.globalAlpha = Math.min(1, tp * 1.5);
-        drawSingleClip(nextClip, 0, W, H, 0);
-      } else {
-        ctx.globalAlpha = tp;
-        drawSingleClip(nextClip, 0, W, H, 0);
+    for(let c of clips){
+      if(t >= acc && t < acc + c.duration){
+        currentClip = c;
+        localT = t - acc;
+        break;
       }
-      ctx.restore();
-    } else {
-      drawSingleClip(clip, progress, W, H, localT);
+      acc += c.duration;
+      currentClip = c;
+      localT = c.duration;
     }
+
+    const progress = Math.min(1, Math.max(0, localT / currentClip.duration));
+    const kb = currentClip.kb || {s0:1, s1:1, x0:0.5, y0:0.5, x1:0.5, y1:0.5};
+    const scale = kb.s0 + (kb.s1 - kb.s0) * progress;
+    const cx = kb.x0 + (kb.x1 - kb.x0) * progress;
+    const cy = kb.y0 + (kb.y1 - kb.y0) * progress;
+
+    ctx.save();
+    ctx.filter = FILTER_CSS[currentClip.filter] || 'none';
+
+    if(currentClip.type === 'image' && currentClip.img){
+      const img = currentClip.img;
+      const cw = canvas.width, ch = canvas.height;
+      const iw = img.width, ih = img.height;
+      const hRatio = cw / iw, vRatio = ch / ih;
+      const ratio = Math.max(hRatio, vRatio);
+      
+      const sw = cw / (scale * ratio);
+      const sh = ch / (scale * ratio);
+      const sx = Math.max(0, Math.min(iw - sw, iw * cx - sw / 2));
+      const sy = Math.max(0, Math.min(ih - sh, ih * cy - sh / 2));
+
+      ctx.drawImage(img, sx, sy, sw, sh, 0, 0, cw, ch);
+    } else if(currentClip.type === 'video' && currentClip.video){
+      const v = currentClip.video;
+      if(Math.abs(v.currentTime - localT) > 0.3) v.currentTime = localT;
+      ctx.drawImage(v, 0, 0, canvas.width, canvas.height);
+    }
+    ctx.restore();
   }
 
   playBtn.addEventListener('click', ()=>{
     if(playing) return;
     playing = true;
-    if(audioLoaded) audioEl.play();
+    if(audioLoaded){ audioEl.currentTime = currentTime; audioEl.play(); }
     let lastTime = performance.now();
 
     function loop(now){
       if(!playing) return;
-      const dt = (now - lastTime) / 1000;
+      const delta = (now - lastTime) / 1000;
       lastTime = now;
-
-      if(audioLoaded){
-        currentTime = audioEl.currentTime;
-      } else {
-        currentTime += dt;
-      }
+      currentTime += delta;
 
       const dur = totalDuration();
       if(currentTime >= dur){
         currentTime = dur;
-        playing = false;
-        if(audioLoaded) audioEl.pause();
+        stopPlayback();
+        drawFrame(currentTime);
+        return;
       }
 
-      timeNow.textContent = fmt(currentTime);
-      trackFill.style.width = ((currentTime / dur) * 100) + '%';
       drawFrame(currentTime);
-
-      if(playing) requestAnimationFrame(loop);
+      trackFill.style.width = ((currentTime / dur) * 100) + '%';
+      timeNow.textContent = fmt(currentTime);
+      requestAnimationFrame(loop);
     }
     requestAnimationFrame(loop);
   });
 
-  stopBtn.addEventListener('click', ()=>{
+  function stopPlayback(){
     playing = false;
+    if(audioLoaded) audioEl.pause();
+  }
+
+  stopBtn.addEventListener('click', ()=>{
+    stopPlayback();
     currentTime = 0;
-    if(audioLoaded){ audioEl.pause(); audioEl.currentTime = 0; }
-    timeNow.textContent = fmt(0);
-    trackFill.style.width = '0%';
     drawFrame(0);
+    trackFill.style.width = '0%';
+    timeNow.textContent = '0:00';
   });
 
-  track.addEventListener('click', e=>{
+  track.addEventListener('click', e => {
     const rect = track.getBoundingClientRect();
-    const ratio = (e.clientX - rect.left) / rect.width;
-    const dur = totalDuration();
-    currentTime = ratio * dur;
+    const pos = (e.clientX - rect.left) / rect.width;
+    currentTime = pos * totalDuration();
     if(audioLoaded) audioEl.currentTime = currentTime;
-    timeNow.textContent = fmt(currentTime);
-    trackFill.style.width = (ratio * 100) + '%';
     drawFrame(currentTime);
+    trackFill.style.width = (pos * 100) + '%';
+    timeNow.textContent = fmt(currentTime);
   });
 
-  // ==========================================
-  // CORRECCIÓN: EXPORTACIÓN REAL CON MEDIARECORDER
-  // ==========================================
-  exportBtn.addEventListener('click', async () => {
-    if(clips.length === 0){
-      alert('Agrega al menos un clip para exportar.');
-      return;
-    }
-
-    exportStatus.textContent = '⏳ Preparando exportación de video...';
-    exportBtn.disabled = true;
-
+  exportBtn.addEventListener('click', async ()=>{
+    if(clips.length === 0){ alert('Agrega elementos primero.'); return; }
+    exportStatus.textContent = '⚙️ Preparando grabación de video...';
+    
+    const stream = canvas.captureStream(30);
+    let recorder;
     try {
-      const totalDur = totalDuration();
-      const fps = 30;
-      const stream = canvas.captureStream(fps);
-
-      // Si hay audio cargado, lo combinamos al stream de video
-      if(audioLoaded && audioEl) {
-        try {
-          const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-          const source = audioCtx.createMediaElementSource(audioEl);
-          const dest = audioCtx.createMediaStreamDestination();
-          source.connect(dest);
-          source.connect(audioCtx.destination);
-          
-          if(dest.stream && dest.stream.getAudioTracks().length > 0) {
-            stream.addTrack(dest.stream.getAudioTracks()[0]);
-          }
-        } catch(err) {
-          console.warn('No se pudo fusionar el audio nativo, se exportará sin audio o solo video:', err);
-        }
-      }
-
-      let mimeType = 'video/webm;codecs=vp9,opus';
-      if (!MediaRecorder.isTypeSupported(mimeType)) {
-        mimeType = 'video/webm';
-      }
-
-      const recorder = new MediaRecorder(stream, { mimeType });
-      const chunks = [];
-
-      recorder.ondataavailable = e => {
-        if(e.data && e.data.size > 0) chunks.push(e.data);
-      };
-
-      recorder.onstop = () => {
-        const blob = new Blob(chunks, { type: 'video/webm' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = 'autoclip_studio_video.webm';
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        exportStatus.textContent = '✅ ¡Video generado y descargado con éxito!';
-        exportBtn.disabled = false;
-      };
-
-      // Iniciar reproducción para la grabación
-      currentTime = 0;
-      if(audioLoaded){
-        audioEl.currentTime = 0;
-        audioEl.play();
-      }
-      recorder.start();
-
-      let startTime = performance.now();
-
-      function exportLoop(now){
-        let elapsed = (now - startTime) / 1000;
-        if(audioLoaded) {
-          elapsed = audioEl.currentTime;
-        }
-        currentTime = elapsed;
-
-        if(currentTime < totalDur && (audioLoaded ? !audioEl.ended : true)){
-          drawFrame(currentTime);
-          timeNow.textContent = fmt(currentTime);
-          trackFill.style.width = ((currentTime / totalDur) * 100) + '%';
-          exportStatus.textContent = `⏳ Grabando video... (${Math.round((currentTime / totalDur) * 100)}%)`;
-          requestAnimationFrame(exportLoop);
-        } else {
-          if(audioLoaded) audioEl.pause();
-          setTimeout(() => {
-            if(recorder.state !== 'inactive') {
-              recorder.stop();
-            }
-          }, 500);
-        }
-      }
-
-      requestAnimationFrame(exportLoop);
-
-    } catch (err) {
-      console.error(err);
-      exportStatus.textContent = '❌ Error al exportar el video: ' + err.message;
-      exportBtn.disabled = false;
+      recorder = new MediaRecorder(stream, { mimeType: 'video/webm;codecs=vp9' });
+    } catch(e) {
+      recorder = new MediaRecorder(stream);
     }
+
+    let chunks = [];
+    recorder.ondataavailable = e => chunks.push(e.data);
+    recorder.onstop = () => {
+      const blob = new Blob(chunks, { type: 'video/webm' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'autoclip-video.webm';
+      a.click();
+      exportStatus.textContent = '✅ ¡Video descargado con éxito!';
+    };
+
+    currentTime = 0;
+    drawFrame(0);
+    recorder.start();
+    if(audioLoaded){ audioEl.currentTime = 0; audioEl.play(); }
+
+    let lastTime = performance.now();
+    const dur = totalDuration();
+
+    function exportLoop(now){
+      const delta = (now - lastTime) / 1000;
+      lastTime = now;
+      currentTime += delta;
+
+      if(currentTime >= dur || !playingExport){
+        stopPlayback();
+        recorder.stop();
+        playingExport = false;
+        return;
+      }
+      drawFrame(currentTime);
+      requestAnimationFrame(exportLoop);
+    }
+
+    let playingExport = true;
+    requestAnimationFrame(exportLoop);
   });
 
   updateResolution();
-  renderClipList();
 })();
 </script>
 </body>
