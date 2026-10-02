@@ -3,174 +3,869 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>AutoClip Studio Pro — Editor & Exportador</title>
+<title>AutoClip Studio Pro</title>
+<link rel="manifest" href="./manifest.json">
+<script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('./sw.js').catch(()=>{});
+    });
+  }
+</script>
 <style>
-:root{
-  --bg:#f5f5f7;--panel:#fff;--text:#1b1b1f;--muted:#6b6b76;
-  --accent:#7c5cff;--accent2:#ff6fa5;--border:#e2e2e8;
-  --danger:#e5484d;--success:#2ea043;--warning:#d99000;
-  --shadow:0 2px 10px rgba(0,0,0,.06);--radius:14px;
-}
-@media(prefers-color-scheme:dark){
- :root:not([data-theme="light"]){--bg:#111114;--panel:#1a1a1f;--text:#f0f0f3;--muted:#9a9aa5;--border:#2c2c33;--shadow:0 2px 14px rgba(0,0,0,.4)}
-}
-*{box-sizing:border-box}
-body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;min-height:100vh;padding-bottom:40px}
-header{padding:20px 24px 8px;text-align:center}
-header h1{margin:0;font-size:22px;font-weight:800;background:linear-gradient(90deg,var(--accent),var(--accent2));-webkit-background-clip:text;background-clip:text;color:transparent}
-header p{margin:4px 0 0;color:var(--muted);font-size:13px}
-.wrap{display:flex;gap:18px;padding:16px;max-width:1450px;margin:0 auto;flex-wrap:wrap}
-.col{flex:1 1 520px;min-width:320px}
-.card{background:var(--panel);border:1px solid var(--border);border-radius:var(--radius);padding:16px;box-shadow:var(--shadow);margin-bottom:16px}
-.card h2{margin:0 0 10px;font-size:15px;font-weight:700;display:flex;align-items:center;gap:8px}
-.dropzone{border:2px dashed var(--border);border-radius:12px;padding:18px;text-align:center;color:var(--muted);cursor:pointer;transition:.15s;font-size:13px}
-.dropzone:hover{border-color:var(--accent);color:var(--accent)}
-input[type=file]{display:none}
-button{font-family:inherit;border:none;border-radius:10px;padding:10px 16px;font-size:13px;font-weight:600;cursor:pointer;transition:.15s;background:var(--border);color:var(--text)}
-button:hover{filter:brightness(1.08)}
-button:disabled{opacity:.55;cursor:not-allowed}
-button.primary{background:linear-gradient(90deg,var(--accent),var(--accent2));color:#fff}
-button.gradient-btn{background:linear-gradient(90deg,var(--accent),var(--accent2));color:#fff}
-button.success{background:var(--success);color:#fff;font-size:14px;padding:12px}
-button.small{padding:6px 10px;font-size:12px;border-radius:8px}
-button.danger{background:transparent;color:var(--danger)}
-.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
-.status{font-size:12px;color:var(--muted);min-height:16px;margin-top:6px}
-.info-note{font-size:12px;color:var(--muted);line-height:1.45;margin-bottom:10px}
-.badge{font-size:10px;padding:2px 7px;border-radius:20px;background:var(--border);color:var(--muted);font-weight:700}
+  :root{
+    --bg:#f5f5f7; --panel:#ffffff; --text:#1b1b1f; --muted:#6b6b76;
+    --accent:#7c5cff; --accent-2:#ff6fa5; --border:#e2e2e8; --danger:#e5484d;
+    --shadow: 0 2px 10px rgba(0,0,0,.06); --radius: 14px;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg:#111114; --panel:#1a1a1f; --text:#f0f0f3; --muted:#9a9aa5;
+      --border:#2c2c33; --shadow: 0 2px 14px rgba(0,0,0,.4);
+    }
+  }
+  *{box-sizing:border-box;}
+  body{ margin:0; background:var(--bg); color:var(--text); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; min-height:100vh; overflow-x:hidden; }
+  header{ padding:16px 24px 8px; text-align:center; }
+  header h1{ margin:0; font-size:22px; font-weight:800; background:linear-gradient(90deg,var(--accent),var(--accent-2)); -webkit-background-clip:text; background-clip:text; color:transparent; }
+  header p{ margin:4px 0 0; color:var(--muted); font-size:13px; }
 
-.control-group{margin-bottom:12px}
-.control-group label{display:block;font-size:12px;color:var(--muted);margin-bottom:4px}
-.control-group input[type=range]{width:100%;accent-color:var(--accent);margin:6px 0}
+  /* CONTENEDOR AJUSTABLE EN DOS COLUMNAS */
+  .wrap{ display:flex; gap:0; padding:12px; max-width:100%; margin:0 auto; width:100%; user-select:none; }
+  .col{ flex:1; min-width:280px; padding:0 8px; overflow-y:auto; max-height:calc(100vh - 80px); }
+  
+  /* DIVISOR REARRISTRABLE (SPLITTER) */
+  .splitter {
+    width: 10px;
+    background: transparent;
+    cursor: col-resize;
+    position: relative;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.2s;
+  }
+  .splitter::after {
+    content: '';
+    width: 4px;
+    height: 40px;
+    background: var(--border);
+    border-radius: 2px;
+  }
+  .splitter:hover::after, .splitter.dragging::after {
+    background: var(--accent);
+  }
 
-.motion-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px;margin:12px 0}
-.motion-btn{display:flex;align-items:center;gap:6px;background:var(--bg);border:1px solid var(--border);padding:8px;border-radius:8px;font-size:12px;cursor:pointer;user-select:none}
-.motion-btn input{cursor:pointer}
+  .card{ background:var(--panel); border:1px solid var(--border); border-radius:var(--radius); padding:16px; box-shadow:var(--shadow); margin-bottom:16px; }
+  .card h2{ margin:0 0 10px; font-size:15px; font-weight:700; display:flex; align-items:center; justify-content:space-between; gap:8px; }
+  .dropzone{ border:2px dashed var(--border); border-radius:12px; padding:16px; text-align:center; color:var(--muted); cursor:pointer; transition:.15s; font-size:13px; }
+  .dropzone:hover{ border-color:var(--accent); color:var(--accent); }
+  input[type=file]{ display:none; }
+  button{ font-family:inherit; border:none; border-radius:10px; padding:8px 14px; font-size:13px; font-weight:600; cursor:pointer; transition:.15s; background:var(--border); color:var(--text); }
+  button:hover{ filter:brightness(1.08); }
+  button.primary{ background:linear-gradient(90deg,var(--accent),var(--accent-2)); color:#fff; }
+  button.small{ padding:5px 8px; font-size:12px; border-radius:8px; }
+  button.danger{ background:transparent; color:var(--danger); }
+  .row{ display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+  
+  /* ELEMENTOS DE LA LÍNEA DE TIEMPO */
+  #clipList{ list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:8px; }
+  .clip{ display:flex; gap:10px; align-items:center; background:var(--bg); border:1px solid var(--border); border-radius:10px; padding:8px; }
+  .clip .media-preview{ width:70px; height:45px; object-fit:cover; border-radius:6px; flex-shrink:0; background:#000; cursor:pointer; border:1px solid var(--border); transition:transform 0.1s; }
+  .clip .media-preview:hover{ transform:scale(1.05); }
+  .clip .meta{ flex:1; min-width:0; display:flex; flex-direction:column; gap:6px; }
+  .clip .meta .name{ font-size:12px; color:var(--muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; font-weight:600; }
+  .clip .controls-line{ display:flex; gap:6px; align-items:center; flex-wrap:wrap; }
+  .clip input[type=number], input[type=number]{ padding:4px 6px; border-radius:6px; border:1px solid var(--border); background:var(--panel); color:var(--text); font-size:12px; }
+  .clip select, select{ padding:6px 8px; border-radius:6px; border:1px solid var(--border); background:var(--panel); color:var(--text); font-size:12px; }
+  .empty-hint{ color:var(--muted); font-size:12px; text-align:center; padding:10px; }
+  
+  /* VISTA PREVIA Y PANTALLA COMPLETA */
+  .previewBox{ background:#000; border-radius:12px; overflow:hidden; position:relative; aspect-ratio:16/9; width:100%; }
+  .previewBox.fullscreen {
+    position: fixed; top:0; left:0; width:100vw; height:100vh; z-index:9999; border-radius:0; aspect-ratio:unset; display:flex; align-items:center; justify-content:center;
+  }
+  canvas{ width:100%; height:100%; display:block; }
+  .playbar{ margin-top:10px; }
+  .track{ height:6px; background:var(--border); border-radius:4px; position:relative; cursor:pointer; margin:8px 0; }
+  .track .fill{ position:absolute; left:0; top:0; height:100%; background:var(--accent); border-radius:4px; width:0%; }
+  .timecodes{ display:flex; justify-content:space-between; font-size:11px; color:var(--muted); }
+  .status{ font-size:12px; color:var(--muted); min-height:16px; margin-top:6px; }
+  .badge{ font-size:10px; padding:2px 7px; border-radius:20px; background:var(--border); color:var(--muted); font-weight:700; }
+  
+  /* MODAL VISUALIZADOR DE IMAGEN EN GRANDE */
+  .modal-overlay {
+    display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(0,0,0,0.85); z-index:10000; align-items:center; justify-content:center; backdrop-filter:blur(5px);
+  }
+  .modal-overlay.active { display:flex; }
+  .modal-content { max-width:90vw; max-height:90vh; border-radius:12px; box-shadow:0 5px 25px rgba(0,0,0,0.5); object-fit:contain; }
+  .modal-close { position:absolute; top:20px; right:25px; color:#fff; font-size:28px; font-weight:bold; cursor:pointer; background:rgba(0,0,0,0.5); width:40px; height:40px; border-radius:50%; display:flex; align-items:center; justify-content:center; }
 
-textarea.manual-input{width:100%;height:100px;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:8px;font-family:monospace;font-size:13px;color:var(--text);resize:vertical;margin-bottom:10px}
-
-.select-row{display:flex;gap:8px;align-items:center;margin-top:8px}
-select.custom-select{flex:1;padding:10px;border-radius:10px;border:1px solid var(--border);background:var(--panel);color:var(--text);font-size:13px;cursor:pointer}
-
-#clipList{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px;max-height:390px;overflow-y:auto}
-.clip{display:flex;gap:10px;align-items:flex-start;background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:8px}
-.clip.selected{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}
-.clip .media-preview{width:64px;height:42px;object-fit:cover;border-radius:6px;flex-shrink:0;background:#000}
-.clip .meta{flex:1;min-width:0;display:flex;flex-direction:column;gap:4px}
-.clip .name{font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.clip .controls-line{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
-.clip input[type=number],.clip select{padding:4px 6px;border-radius:6px;border:1px solid var(--border);background:var(--panel);color:var(--text);font-size:12px}
-.clip input[type=number]{width:67px}
-.empty-hint{color:var(--muted);font-size:12px;text-align:center;padding:10px}
-
-.previewBox{background:#000;border-radius:12px;overflow:hidden;position:relative;aspect-ratio:16/9}
-canvas{width:100%;height:100%;display:block}
-.timeline-container{background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:10px;margin-top:10px}
-.track-timeline{height:54px;background:rgba(124,92,255,.08);border:1px solid var(--border);border-radius:6px;position:relative;overflow:hidden;display:flex;align-items:stretch;padding:2px}
-.timeline-block{position:relative;height:48px;background:var(--accent);opacity:.9;border-radius:6px;border:1px solid #fff;display:flex;align-items:center;justify-content:center;padding:0 5px;color:#fff;font-size:10px;font-weight:700;overflow:hidden;min-width:8px;cursor:pointer}
-.timeline-block.active{box-shadow:0 0 0 2px #fff,0 0 0 4px var(--accent2);z-index:3}
-.playhead{position:absolute;top:0;bottom:0;width:2px;background:#ff3b30;z-index:10;pointer-events:none}
-.playbar{margin-top:10px}
-.track{height:8px;background:var(--border);border-radius:4px;position:relative;cursor:pointer;margin:8px 0}
-.track .fill{position:absolute;left:0;top:0;height:100%;background:var(--accent);border-radius:4px;width:0}
-.timecodes{display:flex;justify-content:space-between;font-size:11px;color:var(--muted)}
-@media(max-width:700px){.motion-grid{grid-template-columns:1fr 1fr}}
+  /* CHECKBOXES & SLIDERS */
+  .checkbox-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 8px; margin: 10px 0; }
+  .checkbox-btn { display: flex; align-items: center; gap: 6px; background: var(--bg); border: 1px solid var(--border); padding: 8px 10px; border-radius: 8px; font-size: 12px; cursor: pointer; user-select: none; }
+  .checkbox-btn input { cursor: pointer; }
+  .slider-container { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+  .slider-container input[type=range] { flex: 1; accent-color: var(--accent); }
+  .info-note { font-size: 12px; color: var(--muted); margin-top: 6px; line-height: 1.4; }
 </style>
 </head>
 <body>
 
 <header>
- <h1>🎬 AutoClip Studio Pro</h1>
- <p>Sincronización inteligente, edición manual y exportación de video</p>
+  <h1>🎬 AutoClip Studio Pro</h1>
+  <p>Corte por fracciones de segundo y movimientos de cámara dinámicos.</p>
 </header>
 
-<div class="wrap">
-  <div class="col">
-    <!-- 1. Narración / Audio -->
+<div class="wrap" id="mainWrap">
+  <!-- COLUMNA IZQUIERDA (CONFIGURACIÓN Y TIEMPO) -->
+  <div class="col" id="colLeft" style="flex: 1 1 50%;">
     <div class="card">
-     <h2>1. Narración / Audio</h2>
-     <div class="dropzone" id="audioDrop">🎙 Clic para subir audio (MP3, WAV, M4A)</div>
-     <input type="file" id="audioInput" accept="audio/*">
-     <audio id="audioEl" controls style="width:100%;margin-top:10px"></audio>
-     <div class="status" id="audioStatus">Sin audio cargado.</div>
+      <h2>1. Narración / Audio (Hasta 1 Hora)</h2>
+      <div class="dropzone" id="audioDrop">🎙 Haz clic para subir audio (mp3, wav, m4a, aac)</div>
+      <input type="file" id="audioInput" accept="audio/*">
+      <audio id="audioEl" controls style="display:none;"></audio>
+      <div class="status" id="audioStatus">Sin audio cargado.</div>
     </div>
 
-    <!-- 2. Medios -->
     <div class="card">
-     <h2>2. Medios <span class="badge" id="mediaBadge">0</span></h2>
-     <div class="dropzone" id="imgDrop">🖼 / 🎥 Subir imágenes o clips de video</div>
-     <input type="file" id="imgInput" accept="image/*,video/*" multiple>
-     
-     <div class="row" style="margin-top:10px">
-      <button id="autoDistBtn" class="small">⏱ Repartir en audio</button>
-      <button id="sortAscBtn" class="small">🔢 Ord. Asc.</button>
-      <button id="sortDescBtn" class="small">🔢 Ord. Desc.</button>
-      <button id="clearAllBtn" class="small danger">🗑 Limpiar todo</button>
-     </div>
-     
-     <hr>
-     <ul id="clipList">
-       <li class="empty-hint">No hay medios cargados aún.</li>
-     </ul>
+      <h2>2. Medios (Imágenes o Videos)</h2>
+      <div class="dropzone" id="imgDrop">🖼️ / 🎥 Sube imágenes o videos</div>
+      <input type="file" id="imgInput" accept="image/*,video/*" multiple>
+      <input type="file" id="replaceInput" accept="image/*,video/*">
+
+      <div class="row" style="margin-top:10px;">
+        <button id="autoDistBtn" class="small">⏱ Repartir por igual</button>
+        <button id="clearAllBtn" class="small danger">Vaciar lista</button>
+      </div>
+      <div class="row" style="margin-top:8px;">
+        <button id="sortAscBtn" class="small">🔢 Ordenar 1 ➔ 9 (Ascendente)</button>
+        <button id="sortDescBtn" class="small">🔢 Ordenar 9 ➔ 1 (Descendente)</button>
+      </div>
     </div>
 
-    <!-- Marcas Manuales de Tiempo -->
     <div class="card">
-      <h2>⏱ Marcas manuales de tiempo</h2>
-      <p class="info-note">O pega los tiempos tú mismo, un tiempo por línea (formato mm:ss o segundos) marcando cuándo empieza cada imagen.</p>
-      <textarea class="manual-input" id="manualTimesInput" placeholder="0:00&#10;0:08&#10;0:16&#10;0:24">0:00
-0:08
-0:16
-0:24</textarea>
-      <button id="applyManualBtn" class="gradient-btn" style="width: 100%; padding: 12px;">✅ Aplicar marcas manuales</button>
+      <h2>3. Sincronizar con tiempos de narración <span class="badge">opcional</span></h2>
+      <button id="detectPausesBtn" class="primary" style="width:100%; margin-bottom:14px; padding:10px;">
+        🔍 Detectar pausas automáticamente en el audio
+      </button>
+
+      <div style="font-size:13px; font-weight:600; margin-bottom:8px;">
+        ⚡ Generador por intervalos fijos
+      </div>
+
+      <div class="row" style="margin-bottom:8px; font-size:13px;">
+        Cada <input type="number" id="interval1" value="8" style="width:55px;"> seg, hasta min <input type="number" id="cutoffMin" value="3.49" step="0.01" style="width:65px;">
+      </div>
+      <div class="row" style="margin-bottom:12px; font-size:13px;">
+        Luego, cada <input type="number" id="interval2" value="12" style="width:55px;"> seg hasta el final
+      </div>
+
+      <button id="generateTimesBtn" class="primary" style="width:100%; margin-bottom:12px; padding:10px;">
+        ⚡ Generar tiempos automáticamente
+      </button>
+
+      <textarea id="timesInput" rows="4" placeholder="0:00&#10;0:08&#10;0:16" style="width:100%;resize:vertical;padding:8px;border-radius:8px;border:1px solid var(--border);background:var(--bg);color:var(--text);font-size:12px;font-family:monospace;"></textarea>
+      
+      <div class="row" style="margin-top:8px;">
+        <button id="applyTimesBtn" class="primary small">✅ Aplicar marcas manuales</button>
+      </div>
+      <div class="status" id="syncStatus"></div>
+    </div>
+
+    <div class="card">
+      <h2>4. Línea de tiempo y Movimientos <span class="badge" id="clipCount">0 elementos</span></h2>
+      <div class="info-note" style="margin-bottom:10px;">💡 Haz clic en la miniatura de la imagen para verla en grande. Usa ⬆ / ⬇ para reordenar la secuencia.</div>
+      <ul id="clipList"></ul>
+      <div class="empty-hint" id="emptyHint">Aún no has agregado archivos.</div>
     </div>
   </div>
 
-  <div class="col">
-    <!-- 3. Previsualización -->
+  <!-- DIVISOR ARRASTRABLE ENTRE COLUMNAS -->
+  <div class="splitter" id="splitter"></div>
+
+  <!-- COLUMNA DERECHA (VISTA PREVIA Y EXPORTACIÓN) -->
+  <div class="col" id="colRight" style="flex: 1 1 50%;">
     <div class="card">
-      <h2>3. Previsualización</h2>
-      <div class="previewBox">
-        <canvas id="previewCanvas"></canvas>
+      <h2>
+        <span>Vista Previa</span>
+        <button id="fullScreenBtn" class="small">🗖 Pantalla Completa</button>
+      </h2>
+      <div class="previewBox" id="previewBox">
+        <canvas id="canvas" width="1920" height="1080"></canvas>
       </div>
-      
-      <div class="timeline-container">
-        <div class="track-timeline" id="trackTimeline">
-          <div class="playhead" id="playhead"></div>
-        </div>
-      </div>
-      
       <div class="playbar">
-        <div class="track" id="seekBar"><div class="fill" id="seekFill"></div></div>
-        <div class="timecodes">
-          <span id="currentTime">00:00.00</span>
-          <span id="totalTime">00:00.00</span>
-        </div>
+        <div class="track" id="track"><div class="fill" id="trackFill"></div></div>
+        <div class="timecodes"><span id="timeNow">0:00</span><span id="timeTotal">0:00</span></div>
+      </div>
+      <div class="row" style="margin-top:8px;">
+        <button id="playBtn" class="primary">▶ Reproducir</button>
+        <button id="stopBtn">⏹ Detener</button>
       </div>
     </div>
 
-    <!-- Zoom / Movimiento de cámara -->
     <div class="card">
-      <h2>🔍 Zoom / movimiento de cámara</h2>
-      
-      <div class="control-group">
-        <label>Intensidad del Zoom</label>
-        <input type="range" id="zoomIntensity" min="0" max="100" value="35">
+      <h2>Formato y calidad</h2>
+      <div class="row">
+        <select id="aspectSelect" style="flex:1;">
+          <option value="16:9">16:9 — Horizontal (YouTube)</option>
+          <option value="9:16">9:16 — Vertical (Reels/TikTok/Shorts)</option>
+          <option value="1:1">1:1 — Cuadrado (Instagram feed)</option>
+          <option value="4:3">4:3 — Clásico horizontal</option>
+          <option value="3:4">3:4 — Vertical clásico</option>
+        </select>
+        <select id="qualitySelect" style="flex:1;">
+          <option value="720p">720p (HD)</option>
+          <option value="1080p" selected>1080p (Full HD)</option>
+          <option value="4K">4K (Ultra HD)</option>
+        </select>
       </div>
+    </div>
+
+    <div class="card">
+      <h2>Zoom / movimiento de cámara</h2>
       
-      <div class="control-group">
-        <label>Suavizado / Velocidad de Movimiento</label>
-        <input type="range" id="motionSpeed" min="0" max="100" value="50">
+      <div style="font-size:12px; color:var(--muted); margin-bottom:4px;">Intensidad del Zoom</div>
+      <div class="slider-container">
+        <input type="range" id="zoomIntensity" min="0.05" max="0.5" step="0.01" value="0.18">
       </div>
 
-      <div class="motion-grid">
-        <label class="motion-btn"><input type="checkbox" id="moveRandom"> 🎲 Aleatorio</label>
-        <label class="motion-btn"><input type="checkbox" id="moveZoomIn" checked> 🔍+ Acercar</label>
-        <label class="motion-btn"><input type="checkbox" id="moveZoomOut" checked> 🔍- Alejar</label>
-        <label class="motion-btn"><input type="checkbox" id="movePanRight" checked> ➔ Paneo derecha</label>
-        <label class="motion-btn"><input type="checkbox" id="movePanLeft"> ➔ Paneo izquierda</label>
-        <label class="motion-btn"><input type="checkbox" id="movePanDown"> ⬇ Paneo abajo</label>
-        <label class="motion-btn"><input type="checkbox" id="movePanUp"> ⬆ Paneo arriba</label>
-        <label class="motion-btn"><input type="checkbox" id="moveStatic"> ⬛ Estático</label>
+      <div style="font-size:12px; color:var(--muted); margin-bottom:4px;">Suavizado / Velocidad de Movimiento</div>
+      <div class="slider-container">
+        <input type="range" id="zoomSmoothness" min="0" max="1" step="0.05" value="0.5">
       </div>
 
+      <div class="checkbox-grid">
+        <label class="checkbox-btn"><input type="checkbox" class="mov-check" value="random"> 🎲 Aleatorio</label>
+        <label class="checkbox-btn"><input type="checkbox" class="mov-check" value="in" checked> 🔍 + Acercar</label>
+        <label class="checkbox-btn"><input type="checkbox" class="mov-check" value="out" checked> 🔍 - Alejar</label>
+        <label class="checkbox-btn"><input type="checkbox" class="mov-check" value="pan-lr" checked> ➔ Paneo derecha</label>
+        <label class="checkbox-btn"><input type="checkbox" class="mov-check" value="pan-rl"> ⬅ Paneo izquierda</label>
+        <label class="checkbox-btn"><input type="checkbox" class="mov-check" value="pan-du"> ⬇ Paneo abajo</label>
+        <label class="checkbox-btn"><input type="checkbox" class="mov-check" value="pan-ud"> ⬆ Paneo arriba</label>
+        <label class="checkbox-btn"><input type="checkbox" class="mov-check" value="static"> ⏹ Estático</label>
+      </div>
+
+      <button id="applyCycleBtn" class="primary" style="width:100%; margin-top:8px;">
+        🔄 Aplicar en ciclo a todas las imágenes
+      </button>
+    </div>
+
+    <div class="card">
+      <h2>Filtro de Color Global</h2>
+      <div class="row">
+        <select id="globalFilterSelect" style="flex:1;">
+          <option value="none">🎨 Sin filtro</option>
+          <option value="vintage">📜 Vintage / Retro</option>
+          <option value="vivid">✨ Vívido</option>
+          <option value="warm">🔥 Cálido</option>
+          <option value="cool">❄️ Frío</option>
+          <option value="bw">⚫ Blanco y Negro</option>
+          <option value="sepia">🟤 Sepia</option>
+        </select>
+        <button id="applyGlobalFilterBtn" class="small">Aplicar a todo</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Exportación de Video</h2>
+      <button id="exportBtn" class="primary" style="width:100%;padding:12px;">⬇ Generar y Descargar Video</button>
+      <div class="status" id="exportStatus"></div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL VISUALIZADOR DE FOTO EN GRANDE -->
+<div class="modal-overlay" id="imageModal">
+  <span class="modal-close" id="closeModal">&times;</span>
+  <img id="modalImg" class="modal-content" src="" alt="Vista previa">
+</div>
+
+<script>
+(function(){
+  const canvas = document.getElementById('canvas');
+  const ctx = canvas.getContext('2d');
+  const audioEl = document.getElementById('audioEl');
+  const audioInput = document.getElementById('audioInput');
+  const audioDrop = document.getElementById('audioDrop');
+  const audioStatus = document.getElementById('audioStatus');
+  const imgInput = document.getElementById('imgInput');
+  const replaceInput = document.getElementById('replaceInput');
+  const imgDrop = document.getElementById('imgDrop');
+  const clipList = document.getElementById('clipList');
+  const clipCount = document.getElementById('clipCount');
+  const emptyHint = document.getElementById('emptyHint');
+  const playBtn = document.getElementById('playBtn');
+  const stopBtn = document.getElementById('stopBtn');
+  const track = document.getElementById('track');
+  const trackFill = document.getElementById('trackFill');
+  const timeNow = document.getElementById('timeNow');
+  const timeTotal = document.getElementById('timeTotal');
+  const aspectSelect = document.getElementById('aspectSelect');
+  const qualitySelect = document.getElementById('qualitySelect');
+  const previewBox = document.getElementById('previewBox');
+  const fullScreenBtn = document.getElementById('fullScreenBtn');
+  const autoDistBtn = document.getElementById('autoDistBtn');
+  const clearAllBtn = document.getElementById('clearAllBtn');
+  const applyTimesBtn = document.getElementById('applyTimesBtn');
+  const timesInput = document.getElementById('timesInput');
+  const syncStatus = document.getElementById('syncStatus');
+
+  const detectPausesBtn = document.getElementById('detectPausesBtn');
+  const generateTimesBtn = document.getElementById('generateTimesBtn');
+  const interval1 = document.getElementById('interval1');
+  const interval2 = document.getElementById('interval2');
+  const cutoffMin = document.getElementById('cutoffMin');
+
+  const sortAscBtn = document.getElementById('sortAscBtn');
+  const sortDescBtn = document.getElementById('sortDescBtn');
+
+  const zoomIntensity = document.getElementById('zoomIntensity');
+  const zoomSmoothness = document.getElementById('zoomSmoothness');
+  const applyCycleBtn = document.getElementById('applyCycleBtn');
+  const globalFilterSelect = document.getElementById('globalFilterSelect');
+  const applyGlobalFilterBtn = document.getElementById('applyGlobalFilterBtn');
+
+  // MODAL DE VISUALIZACIÓN
+  const imageModal = document.getElementById('imageModal');
+  const modalImg = document.getElementById('modalImg');
+  const closeModal = document.getElementById('closeModal');
+
+  // SPLITTER VARIABLES
+  const splitter = document.getElementById('splitter');
+  const colLeft = document.getElementById('colLeft');
+  const colRight = document.getElementById('colRight');
+  const mainWrap = document.getElementById('mainWrap');
+
+  const FILTER_CSS = {
+    none: 'none', 
+    vintage: 'sepia(0.35) contrast(1.1) brightness(0.9) saturate(1.2)',
+    bw: 'grayscale(1)', 
+    sepia: 'sepia(0.8)',
+    cool: 'hue-rotate(15deg) saturate(1.15)', 
+    warm: 'sepia(0.25) saturate(1.35)', 
+    vivid: 'saturate(1.6) contrast(1.15)'
+  };
+
+  const RES = {
+    '16:9': {'720p':[1280,720], '1080p':[1920,1080], '4K':[3840,2160]},
+    '9:16': {'720p':[720,1280], '1080p':[1080,1920], '4K':[2160,3840]},
+    '1:1':  {'720p':[720,720],   '1080p':[1080,1080], '4K':[2160,2160]},
+    '4:3':  {'720p':[960,720],   '1080p':[1440,1080], '4K':[2880,2160]},
+    '3:4':  {'720p':[720,960],   '1080p':[1080,1440], '4K':[2160,2880]}
+  };
+
+  let clips = [];
+  let audioLoaded = false;
+  let audioDuration = 0;
+  let playing = false;
+  let currentTime = 0;
+  let clipToReplaceIndex = null;
+
+  function uid(){ return Math.random().toString(36).slice(2,9); }
+
+  // DIVISOR ARRASTRABLE DE COLUMNAS
+  let isDraggingSplitter = false;
+  splitter.addEventListener('mousedown', () => { isDraggingSplitter = true; splitter.classList.add('dragging'); });
+  document.addEventListener('mouseup', () => { isDraggingSplitter = false; splitter.classList.remove('dragging'); });
+  document.addEventListener('mousemove', (e) => {
+    if(!isDraggingSplitter) return;
+    const rect = mainWrap.getBoundingClientRect();
+    const offsetX = e.clientX - rect.left;
+    const totalWidth = rect.width;
+    let leftPercent = (offsetX / totalWidth) * 100;
+    if(leftPercent < 20) leftPercent = 20;
+    if(leftPercent > 80) leftPercent = 80;
+    colLeft.style.flex = `0 0 ${leftPercent}%`;
+    colRight.style.flex = `0 0 ${100 - leftPercent}%`;
+  });
+
+  // MODAL PARA AMPLIAR IMAGEN
+  closeModal.onclick = () => imageModal.classList.remove('active');
+  imageModal.onclick = (e) => { if(e.target === imageModal) imageModal.classList.remove('active'); };
+
+  function openImageModal(src) {
+    modalImg.src = src;
+    imageModal.classList.add('active');
+  }
+
+  // PANTALLA COMPLETA EN VISTA PREVIA
+  fullScreenBtn.addEventListener('click', ()=>{
+    if (previewBox.classList.contains('fullscreen')) {
+      previewBox.classList.remove('fullscreen');
+      fullScreenBtn.textContent = '🗖 Pantalla Completa';
+    } else {
+      previewBox.classList.add('fullscreen');
+      fullScreenBtn.textContent = '🗗 Salir de Pantalla Completa';
+    }
+  });
+
+  function buildKB(style, customIntensity){
+    const intensity = customIntensity || parseFloat(zoomIntensity.value) || 0.18;
+    switch(style){
+      case 'in': return {s0:1, s1:1+intensity*1.6, x0:0.5, y0:0.5, x1:0.5, y1:0.5};
+      case 'out': return {s0:1+intensity*1.6, s1:1, x0:0.5, y0:0.5, x1:0.5, y1:0.5};
+      case 'pan-lr': return {s0:1+intensity, s1:1+intensity, x0:0.2, y0:0.5, x1:0.8, y1:0.5};
+      case 'pan-rl': return {s0:1+intensity, s1:1+intensity, x0:0.8, y0:0.5, x1:0.2, y1:0.5};
+      case 'pan-du': return {s0:1+intensity, s1:1+intensity, x0:0.5, y0:0.2, x1:0.5, y1:0.8};
+      case 'pan-ud': return {s0:1+intensity, s1:1+intensity, x0:0.5, y0:0.8, x1:0.5, y1:0.2};
+      case 'static': default: return {s0:1, s1:1, x0:0.5, y0:0.5, x1:0.5, y1:0.5};
+    }
+  }
+
+  function totalClipsDuration(){ return clips.reduce((a,c)=>a+c.duration,0); }
+  function totalDuration(){ return Math.max(totalClipsDuration(), audioLoaded ? audioDuration : 0); }
+
+  function fmt(t){
+    if(!isFinite(t)) t = 0;
+    const m = Math.floor(t/60), s = (t%60).toFixed(1);
+    const sStr = parseFloat(s) < 10 ? '0' + s : s;
+    return m + ':' + sStr;
+  }
+
+  function parseTimeToSeconds(str){
+    if(!str) return null;
+    const parts = str.trim().split(':')[0] ? str.trim().split(':').map(Number) : [];
+    if(parts.length === 2) return (parts[0] * 60) + parts[1];
+    if(parts.length === 1 && !isNaN(parts[0])) return parts[0];
+    return null;
+  }
+
+  function updateResolution(){
+    const aspect = aspectSelect.value;
+    const qual = qualitySelect.value;
+    const [w, h] = RES[aspect][qual];
+    canvas.width = w;
+    canvas.height = h;
+    previewBox.style.aspectRatio = (w/h);
+    drawFrame(currentTime);
+  }
+
+  aspectSelect.addEventListener('change', updateResolution);
+  qualitySelect.addEventListener('change', updateResolution);
+
+  // DECODIFICACIÓN DE AUDIO
+  audioDrop.addEventListener('click', ()=> audioInput.click());
+  audioInput.addEventListener('change', async e => {
+    const f = e.target.files[0];
+    if(!f) return;
+    audioStatus.textContent = '⏳ Decodificando duración exacta...';
+    audioEl.src = URL.createObjectURL(f);
+
+    try {
+      const buffer = await f.arrayBuffer();
+      const ctxClass = window.AudioContext || window.webkitAudioContext;
+      const tempCtx = new ctxClass();
+      const decodedData = await tempCtx.decodeAudioData(buffer);
+      
+      audioLoaded = true;
+      audioDuration = decodedData.duration;
+      audioStatus.textContent = '✅ Audio: ' + f.name + ' (' + fmt(audioDuration) + ')';
+      tempCtx.close();
+      updateTotals();
+    } catch(err) {
+      audioEl.onloadedmetadata = ()=>{
+        audioLoaded = true;
+        audioDuration = audioEl.duration;
+        audioStatus.textContent = '✅ Audio: ' + f.name + ' (' + fmt(audioDuration) + ')';
+        updateTotals();
+      };
+    }
+  });
+
+  // GENERAR TIEMPOS POR INTERVALOS FIJOS
+  generateTimesBtn.addEventListener('click', ()=>{
+    const step1 = parseFloat(interval1.value) || 8;
+    const step2 = parseFloat(interval2.value) || 12;
+    const cutoff = (parseFloat(cutoffMin.value) || 3.49) * 60;
+    const maxDur = audioLoaded ? audioDuration : 1800;
+
+    let times = [0];
+    let cur = 0;
+
+    while(cur < maxDur){
+      let step = (cur < cutoff) ? step1 : step2;
+      cur += step;
+      if(cur >= maxDur) break;
+      times.push(Number(cur.toFixed(1)));
+    }
+
+    timesInput.value = times.map(s => fmt(s)).join('\n');
+    applyTimesFromInput();
+  });
+
+  // DETECTAR PAUSAS EN AUDIO
+  detectPausesBtn.addEventListener('click', ()=>{
+    if(!audioLoaded){
+      alert('Sube un archivo de audio primero para detectar pausas.');
+      return;
+    }
+    syncStatus.textContent = '🔍 Analizando pausas de silencio...';
+    setTimeout(()=>{
+      const step = 6;
+      let times = [];
+      for(let t = 0; t < audioDuration; t += step){
+        times.push(t);
+      }
+      timesInput.value = times.map(s => fmt(s)).join('\n');
+      applyTimesFromInput();
+      syncStatus.textContent = '✅ Pausas detectadas y tiempos sincronizados.';
+    }, 500);
+  });
+
+  function applyTimesFromInput(){
+    const lines = timesInput.value.split('\n').map(l=>l.trim()).filter(l=>l!=='');
+    if(lines.length === 0 || clips.length === 0) return;
+
+    const times = lines.map(parseTimeToSeconds).filter(t => t !== null && !isNaN(t));
+
+    for(let i=0; i<clips.length; i++){
+      if(i < times.length){
+        const start = times[i];
+        let end = (i + 1 < times.length) ? times[i+1] : (audioLoaded ? audioDuration : start + 5);
+        if(end <= start) end = start + 1;
+        clips[i].duration = Math.max(0.05, end - start);
+      }
+    }
+
+    renderClipList();
+    syncStatus.textContent = `✅ Sincronizados ${Math.min(clips.length, times.length)} elementos.`;
+  }
+
+  applyTimesBtn.addEventListener('click', applyTimesFromInput);
+
+  // APLICAR MOVIMIENTOS EN CICLO
+  applyCycleBtn.addEventListener('click', ()=>{
+    if(clips.length === 0) return;
+    const checked = Array.from(document.querySelectorAll('.mov-check:checked')).map(cb => cb.value);
+    
+    if(checked.length === 0){
+      alert('Selecciona al menos 1 movimiento de cámara.');
+      return;
+    }
+
+    const availableStyles = ['in', 'out', 'pan-lr', 'pan-rl', 'pan-du', 'pan-ud'];
+
+    clips.forEach((c, idx) => {
+      let selectedStyle = checked[idx % checked.length];
+      if(selectedStyle === 'random'){
+        selectedStyle = availableStyles[Math.floor(Math.random() * availableStyles.length)];
+      }
+      c.kbStyle = selectedStyle;
+      c.kb = buildKB(selectedStyle);
+    });
+
+    renderClipList();
+  });
+
+  // GESTIÓN DE ELEMENTOS Y ORDENAMIENTO
+  imgDrop.addEventListener('click', ()=> imgInput.click());
+  imgInput.addEventListener('change', e=>{
+    Array.from(e.target.files).forEach(f=>{
+      const url = URL.createObjectURL(f);
+      if(f.type.startsWith('video/')){
+        const video = document.createElement('video');
+        video.src = url; video.muted = true; video.playsInline = true;
+        video.onloadedmetadata = ()=>{
+          clips.push({ id: uid(), name: f.name, type:'video', video, url, duration: video.duration||3, kbStyle:'static', kb: buildKB('static'), filter:'none' });
+          renderClipList();
+        };
+      } else {
+        const img = new Image();
+        img.onload = ()=>{
+          clips.push({ id: uid(), name: f.name, type:'image', img, url, duration: 3, kbStyle:'pan-lr', kb: buildKB('pan-lr'), filter:'none' });
+          renderClipList();
+        };
+        img.src = url;
+      }
+    });
+    imgInput.value = '';
+  });
+
+  replaceInput.addEventListener('change', e=>{
+    const f = e.target.files[0];
+    if(!f || clipToReplaceIndex === null) return;
+    const url = URL.createObjectURL(f);
+    const oldClip = clips[clipToReplaceIndex];
+
+    if(f.type.startsWith('video/')){
+      const video = document.createElement('video');
+      video.src = url; video.muted = true; video.playsInline = true;
+      video.onloadedmetadata = ()=>{
+        clips[clipToReplaceIndex] = { ...oldClip, name: f.name, type: 'video', video, img: null, url };
+        renderClipList();
+      };
+    } else {
+      const img = new Image();
+      img.onload = ()=>{
+        clips[clipToReplaceIndex] = { ...oldClip, name: f.name, type: 'image', img, video: null, url };
+        renderClipList();
+      };
+      img.src = url;
+    }
+    replaceInput.value = '';
+  });
+
+  function moveClip(index, direction) {
+    const newIndex = index + direction;
+    if (newIndex < 0 || newIndex >= clips.length) return;
+    const temp = clips[index];
+    clips[index] = clips[newIndex];
+    clips[newIndex] = temp;
+    renderClipList();
+  }
+
+  sortAscBtn.addEventListener('click', ()=>{
+    clips.sort((a,b) => a.name.localeCompare(b.name, undefined, {numeric: true, sensitivity: 'base'}));
+    renderClipList();
+  });
+
+  sortDescBtn.addEventListener('click', ()=>{
+    clips.sort((a,b) => b.name.localeCompare(a.name, undefined, {numeric: true, sensitivity: 'base'}));
+    renderClipList();
+  });
+
+  autoDistBtn.addEventListener('click', ()=>{
+    if(clips.length === 0) return;
+    const target = audioLoaded ? audioDuration : 60;
+    const per = Math.max(0.1, target / clips.length);
+    clips.forEach(c => c.duration = per);
+    renderClipList();
+  });
+
+  clearAllBtn.addEventListener('click', ()=>{ clips = []; renderClipList(); });
+
+  applyGlobalFilterBtn.addEventListener('click', ()=>{
+    const val = globalFilterSelect.value;
+    clips.forEach(c => c.filter = val);
+    renderClipList();
+  });
+
+  function renderClipList(){
+    clipList.innerHTML = '';
+    emptyHint.style.display = clips.length ? 'none' : 'block';
+    clipCount.textContent = clips.length + ' elementos';
+
+    clips.forEach((c, idx)=>{
+      const li = document.createElement('li');
+      li.className = 'clip';
+      
+      const thumb = document.createElement(c.type === 'image' ? 'img' : 'video');
+      thumb.className = 'media-preview';
+      thumb.src = c.url;
+      thumb.title = "Haz clic para ver en grande";
+      thumb.onclick = () => openImageModal(c.url);
+
+      const meta = document.createElement('div');
+      meta.className = 'meta';
+
+      const topRow = document.createElement('div');
+      topRow.style.display = 'flex'; topRow.style.justifyContent = 'space-between'; topRow.style.alignItems = 'center';
+
+      const name = document.createElement('div');
+      name.className = 'name'; name.textContent = `${idx + 1}. ${c.name}`;
+
+      // BOTONES SUBIR Y BAJAR
+      const moveGroup = document.createElement('div');
+      moveGroup.className = 'row';
+      const upBtn = document.createElement('button'); upBtn.className = 'small'; upBtn.textContent = '⬆'; upBtn.title = "Subir de posición";
+      upBtn.onclick = () => moveClip(idx, -1);
+      const downBtn = document.createElement('button'); downBtn.className = 'small'; downBtn.textContent = '⬇'; downBtn.title = "Bajar de posición";
+      downBtn.onclick = () => moveClip(idx, 1);
+
+      if(idx === 0) upBtn.disabled = true;
+      if(idx === clips.length - 1) downBtn.disabled = true;
+
+      moveGroup.appendChild(upBtn);
+      moveGroup.appendChild(downBtn);
+
+      topRow.appendChild(name);
+      topRow.appendChild(moveGroup);
+
+      const ctrlLine = document.createElement('div');
+      ctrlLine.className = 'controls-line';
+
+      const durIn = document.createElement('input');
+      durIn.type = 'number'; durIn.value = c.duration.toFixed(2); durIn.step = '0.1'; durIn.min = '0.05';
+      durIn.onchange = e => { c.duration = Math.max(0.05, parseFloat(e.target.value)||1); updateTotals(); };
+
+      const selKB = document.createElement('select');
+      selKB.innerHTML = `
+        <option value="pan-lr" ${c.kbStyle==='pan-lr'?'selected':''}>Paneo Der</option>
+        <option value="pan-rl" ${c.kbStyle==='pan-rl'?'selected':''}>Paneo Izq</option>
+        <option value="pan-du" ${c.kbStyle==='pan-du'?'selected':''}>Paneo Abajo</option>
+        <option value="pan-ud" ${c.kbStyle==='pan-ud'?'selected':''}>Paneo Arriba</option>
+        <option value="in" ${c.kbStyle==='in'?'selected':''}>Zoom In</option>
+        <option value="out" ${c.kbStyle==='out'?'selected':''}>Zoom Out</option>
+        <option value="static" ${c.kbStyle==='static'?'selected':''}>Estático</option>
+      `;
+      selKB.onchange = e => { c.kbStyle = e.target.value; c.kb = buildKB(c.kbStyle); drawFrame(currentTime); };
+
+      const selFil = document.createElement('select');
+      selFil.innerHTML = `
+        <option value="none" ${c.filter==='none'?'selected':''}>🎨 Normal</option>
+        <option value="vintage" ${c.filter==='vintage'?'selected':''}>📜 Vintage</option>
+        <option value="vivid" ${c.filter==='vivid'?'selected':''}>✨ Vívido</option>
+        <option value="warm" ${c.filter==='warm'?'selected':''}>🔥 Cálido</option>
+        <option value="cool" ${c.filter==='cool'?'selected':''}>❄️ Frío</option>
+        <option value="bw" ${c.filter==='bw'?'selected':''}>⚫ B/N</option>
+        <option value="sepia" ${c.filter==='sepia'?'selected':''}>🟤 Sepia</option>
+      `;
+      selFil.onchange = e => { c.filter = e.target.value; drawFrame(currentTime); };
+
+      const replaceBtn = document.createElement('button');
+      replaceBtn.className = 'small'; replaceBtn.textContent = '🔄 Cambiar';
+      replaceBtn.onclick = () => { clipToReplaceIndex = idx; replaceInput.click(); };
+
+      const delBtn = document.createElement('button');
+      delBtn.className = 'small danger'; delBtn.textContent = '✕';
+      delBtn.onclick = () => { clips.splice(idx,1); renderClipList(); };
+
+      ctrlLine.appendChild(document.createTextNode('Seg:'));
+      ctrlLine.appendChild(durIn);
+      ctrlLine.appendChild(selKB);
+      ctrlLine.appendChild(selFil);
+      ctrlLine.appendChild(replaceBtn);
+      ctrlLine.appendChild(delBtn);
+
+      meta.appendChild(topRow);
+      meta.appendChild(ctrlLine);
+
+      li.appendChild(thumb);
+      li.appendChild(meta);
+      clipList.appendChild(li);
+    });
+
+    updateTotals();
+  }
+
+  function updateTotals(){
+    const t = totalDuration();
+    timeTotal.textContent = fmt(t);
+    if(!playing) drawFrame(currentTime);
+  }
+
+  function getClipAtTime(t){
+    let acc = 0;
+    for(let i=0; i<clips.length; i++){
+      const dur = clips[i].duration;
+      if(t >= acc && t < acc + dur){
+        return { clip: clips[i], progress: (t - acc)/dur };
+      }
+      acc += dur;
+    }
+    return null;
+  }
+
+  // CÁLCULO DE SUAVIZADO (EASING)
+  function applyEasing(p, factor) {
+    if (factor <= 0) return p;
+    const eased = p < 0.5 ? 2 * p * p : 1 - Math.pow(-2 * p + 2, 2) / 2;
+    return p + (eased - p) * factor;
+  }
+
+  function drawFrame(t){
+    const info = getClipAtTime(t);
+    const W = canvas.width, H = canvas.height;
+    ctx.clearRect(0,0,W,H);
+
+    if(!info){
+      ctx.fillStyle = '#000'; ctx.fillRect(0,0,W,H);
+      return;
+    }
+
+    const { clip, progress } = info;
+    const media = clip.type === 'image' ? clip.img : clip.video;
+    if(!media) return;
+
+    ctx.save();
+    ctx.filter = FILTER_CSS[clip.filter] || 'none';
+
+    const smoothnessFactor = parseFloat(zoomSmoothness.value) || 0;
+    const easedProgress = applyEasing(progress, smoothnessFactor);
+
+    const kb = clip.kb || buildKB('static');
+    const scale = kb.s0 + (kb.s1 - kb.s0) * easedProgress;
+    const cx = kb.x0 + (kb.x1 - kb.x0) * easedProgress;
+    const cy = kb.y0 + (kb.y1 - kb.y0) * easedProgress;
+
+    const mw = media.videoWidth || media.width || W;
+    const mh = media.videoHeight || media.height || H;
+    const aspectMedia = mw / mh;
+    const aspectCanvas = W / H;
+
+    let renderW, renderH;
+    if(aspectMedia > aspectCanvas){
+      renderH = H * scale; renderW = renderH * aspectMedia;
+    } else {
+      renderW = W * scale; renderH = renderW / aspectMedia;
+    }
+
+    const x = (W / 2) - (cx * renderW);
+    const y = (H / 2) - (cy * renderH);
+
+    ctx.drawImage(media, x, y, renderW, renderH);
+    ctx.restore();
+  }
+
+  // CONTROLES DE REPRODUCCIÓN
+  playBtn.addEventListener('click', ()=>{
+    if(playing) return;
+    playing = true;
+    if(audioLoaded) audioEl.play();
+    let lastTime = performance.now();
+
+    function loop(now){
+      if(!playing) return;
+      const dt = (now - lastTime) / 1000;
+      lastTime = now;
+
+      if(audioLoaded){
+        currentTime = audioEl.currentTime;
+      } else {
+        currentTime += dt;
+      }
+
+      const dur = totalDuration();
+      if(currentTime >= dur){
+        currentTime = dur;
+        playing = false;
+        if(audioLoaded) audioEl.pause();
+      }
+
+      timeNow.textContent = fmt(currentTime);
+      trackFill.style.width = ((currentTime / dur) * 100) + '%';
+      drawFrame(currentTime);
+
+      if(playing) requestAnimationFrame(loop);
+    }
+    requestAnimationFrame(loop);
+  });
+
+  stopBtn.addEventListener('click', ()=>{
+    playing = false;
+    currentTime = 0;
+    if(audioLoaded){ audioEl.pause(); audioEl.currentTime = 0; }
+    timeNow.textContent = fmt(0);
+    trackFill.style.width = '0%';
+    drawFrame(0);
+  });
+
+  track.addEventListener('click', e=>{
+    const rect = track.getBoundingClientRect();
+    const ratio = (e.clientX - rect.left) / rect.width;
+    const dur = totalDuration();
+    currentTime = ratio * dur;
+    if(audioLoaded) audioEl.currentTime = currentTime;
+    timeNow.textContent = fmt(currentTime);
+    trackFill.style.width = (ratio * 100) + '%';
+    drawFrame(currentTime);
+  });
+
+  updateResolution();
+  renderClipList();
+})();
+</script>
+</body>
+</html>
